@@ -11,9 +11,7 @@ const rooms = new Map();
 
 app.use(express.static("public"));
 
-app.get("*", (req, res) => {
-  res.sendFile(process.cwd() + "/public/index.html");
-});
+
 
 function generateId() {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
