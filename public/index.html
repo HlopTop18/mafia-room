@@ -1,286 +1,332 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="uk">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mafia Room</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mafia Room — Night</title>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 
 <style>
-* {
-  box-sizing: border-box;
+:root{
+  --bg:#08090e;
+  --panel:#10121a;
+  --panel2:#171a24;
+  --line:#292d3a;
+  --text:#f3f5fb;
+  --muted:#9298a8;
+  --red:#ff3b45;
+  --gold:#d7ad63
 }
 
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #101114;
-  color: white;
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:radial-gradient(circle at 50% -20%,#242033 0,#0b0c12 42%,#05060a 100%);
+  color:var(--text);
+  font:14px Inter,system-ui,Arial,sans-serif;
+  min-height:100vh
 }
 
-header {
-  padding: 14px;
-  background: #181a20;
-  border-bottom: 1px solid #30333b;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  flex-wrap: wrap;
+body:before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.22;
+  background-image:
+    linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
+  background-size:40px 40px
 }
 
-input,
-button {
-  border: 0;
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-size: 14px;
+header{
+  height:64px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  border-bottom:1px solid #1e212c;
+  background:rgba(7,8,13,.78);
+  backdrop-filter:blur(14px);
+  position:sticky;
+  top:0;
+  z-index:20
 }
 
-input {
-  background: #252830;
-  color: white;
-  outline: none;
+.brand{
+  font-weight:900;
+  letter-spacing:.08em
 }
 
-button {
-  cursor: pointer;
-  background: #30343d;
-  color: white;
+.brand span{
+  color:var(--red)
 }
 
-button:hover {
-  background: #414651;
+.room{
+  color:var(--muted);
+  font-size:12px
 }
 
-button.primary {
-  background: #7b1e1e;
+.room b{
+  color:var(--gold)
 }
 
-button.green {
-  background: #176b3a;
+button,input{
+  font:inherit
 }
 
-button.danger {
-  background: #9e2020;
+button{
+  border:1px solid var(--line);
+  background:#171a23;
+  color:var(--text);
+  border-radius:10px;
+  padding:9px 12px;
+  cursor:pointer
 }
 
-button:disabled {
-  opacity: .45;
-  cursor: not-allowed;
+button:hover{
+  background:#202431
 }
 
-#app {
-  display: none;
+button.primary{
+  background:#8f1f29;
+  border-color:#a52a35
 }
 
-.top-info {
-  padding: 10px 14px;
-  background: #15171c;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+button.danger{
+  background:#3a1116;
+  border-color:#71212a
 }
 
-.room-code {
-  font-weight: bold;
-  font-size: 18px;
+.top-actions{
+  display:flex;
+  gap:8px
 }
 
-.host-badge {
-  background: #a67c00;
-  padding: 5px 9px;
-  border-radius: 7px;
-  font-size: 12px;
+main{
+  max-width:1500px;
+  margin:auto;
+  padding:18px
 }
 
-#players {
-  padding: 12px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(150px, 1fr));
-  gap: 10px;
-  min-height: calc(100vh - 130px);
+.lobby{
+  max-width:520px;
+  margin:12vh auto;
+  background:rgba(16,18,26,.92);
+  border:1px solid var(--line);
+  border-radius:20px;
+  padding:28px;
+  box-shadow:0 20px 70px #0008
 }
 
-.player {
-  position: relative;
-  min-height: 150px;
-  background: #1b1e25;
-  border: 3px solid transparent;
-  border-radius: 12px;
-  overflow: hidden;
-  user-select: none;
+.lobby h1{
+  margin:0 0 8px;
+  font-size:30px
 }
 
-.player.dragging {
-  opacity: .45;
+.lobby p{
+  color:var(--muted);
+  line-height:1.5
 }
 
-.player.nominated {
-  border-color: #ff2525;
-  box-shadow: 0 0 16px rgba(255,0,0,.45);
+.fields{
+  display:grid;
+  gap:10px;
+  margin:22px 0
 }
 
-.player.dead {
-  filter: grayscale(.8);
+.fields input{
+  background:#0c0e14;
+  color:white;
+  border:1px solid var(--line);
+  border-radius:11px;
+  padding:12px
 }
 
-video {
-  width: 100%;
-  height: 100%;
-  min-height: 150px;
-  object-fit: cover;
-  display: block;
-  background: #08090b;
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:12px
 }
 
-.player-info {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  padding: 8px;
-  border-radius: 8px;
-  background: rgba(0,0,0,.72);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 5px;
+.tile{
+  position:relative;
+  aspect-ratio:16/9;
+  background:#0d0f15;
+  border:1px solid #292d38;
+  border-radius:14px;
+  overflow:hidden;
+  box-shadow:0 10px 30px #0005;
+  transition:.15s
 }
 
-.player-name {
-  font-weight: bold;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.tile.nominated{
+  border:3px solid var(--red);
+  box-shadow:0 0 25px #ff334455
 }
 
-.status {
-  font-size: 18px;
+.tile.dead:after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:#07080caa
 }
 
-.dead-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0,0,0,.62);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  font-size: 60px;
-  z-index: 4;
+.video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  background:linear-gradient(135deg,#171a23,#08090e)
 }
 
-.player.dead .dead-overlay {
-  display: flex;
+.empty{
+  height:100%;
+  display:grid;
+  place-items:center;
+  color:#555b6c
 }
 
-.controls {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  z-index: 8;
-  display: flex;
-  gap: 5px;
+.namebar{
+  position:absolute;
+  left:9px;
+  right:9px;
+  bottom:8px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  z-index:5;
+  padding:7px 9px;
+  border-radius:9px;
+  background:linear-gradient(transparent,#05060acc);
+  font-weight:700
 }
 
-.controls button {
-  padding: 6px 8px;
-  font-size: 12px;
+.mic{
+  font-size:14px
 }
 
-.host-controls {
-  position: fixed;
-  left: 50%;
-  bottom: 14px;
-  transform: translateX(-50%);
-  background: rgba(20,21,25,.95);
-  padding: 10px;
-  border-radius: 12px;
-  border: 1px solid #383b44;
-  display: none;
-  gap: 7px;
-  z-index: 50;
-  flex-wrap: wrap;
-  justify-content: center;
+.mic.off{
+  color:#ff6b73
 }
 
-.notice {
-  padding: 20px;
-  text-align: center;
+.host{
+  color:var(--gold);
+  font-size:11px
 }
 
-#login {
-  max-width: 440px;
-  margin: 12vh auto;
-  padding: 25px;
-  background: #191b21;
-  border-radius: 14px;
+.deadlabel{
+  position:absolute;
+  inset:0;
+  display:grid;
+  place-items:center;
+  z-index:6;
+  font-size:18px;
+  font-weight:900;
+  letter-spacing:.12em;
+  color:#fff
 }
 
-#login h1 {
-  margin-top: 0;
+.tiletools{
+  position:absolute;
+  right:8px;
+  top:8px;
+  z-index:8;
+  display:flex;
+  gap:5px
 }
 
-#login input {
-  width: 100%;
-  margin-bottom: 10px;
+.tiletools button{
+  padding:6px 8px;
+  background:#090a0dcc
 }
 
-#login button {
-  width: 100%;
+.vol{
+  position:absolute;
+  right:8px;
+  bottom:46px;
+  z-index:8;
+  width:90px;
+  opacity:0;
+  transition:.15s
 }
 
-.small {
-  color: #9da1aa;
-  font-size: 13px;
-  line-height: 1.5;
+.tile:hover .vol,
+.tile:focus-within .vol{
+  opacity:1
 }
 
-.connection {
-  padding: 5px 8px;
-  border-radius: 6px;
-  font-size: 12px;
-  background: #8b2222;
+.controls{
+  display:flex;
+  justify-content:center;
+  gap:10px;
+  margin:16px 0
 }
 
-.connection.ok {
-  background: #176b3a;
+.controls button{
+  width:46px;
+  height:42px;
+  font-size:18px
 }
 
-@media (max-width: 800px) {
-  #players {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: auto;
+.controls button.off{
+  background:#55151b;
+  border-color:#8b2630
+}
+
+.hostpanel{
+  margin:14px 0;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  background:#10121acc;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center
+}
+
+.hostpanel small{
+  color:var(--muted);
+  margin-right:5px
+}
+
+.hint{
+  color:var(--muted);
+  font-size:12px
+}
+
+.hidden{
+  display:none!important
+}
+
+@media(max-width:850px){
+  header{
+    padding:0 12px
   }
 
-  .player {
-    min-height: 170px;
+  .grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:8px
+  }
+
+  main{
+    padding:10px
+  }
+
+  .lobby{
+    margin:8vh auto;
+    padding:20px
+  }
+
+  .room{
+    display:none
   }
 }
 
-@media (max-width: 500px) {
-  header {
-    padding: 10px;
-  }
-
-  #players {
-    padding: 7px;
-    gap: 7px;
-  }
-
-  .player {
-    min-height: 135px;
-  }
-
-  video {
-    min-height: 135px;
-  }
-
-  .host-controls {
-    left: 7px;
-    right: 7px;
-    transform: none;
-    bottom: 7px;
+@media(min-width:851px){
+  .grid{
+    grid-template-columns:repeat(4,minmax(0,1fr))
   }
 }
 </style>
@@ -288,1278 +334,872 @@ video {
 
 <body>
 
-<div id="login">
-  <h1>🎭 Mafia Room</h1>
+<header>
+  <div class="brand">
+    MAFIA <span>ROOM</span>
+  </div>
 
-  <input id="nameInput" placeholder="Твій нікнейм" maxlength="20">
+  <div class="room">
+    Кімната: <b id="roomLabel">—</b>
+  </div>
 
-  <input id="roomInput" placeholder="Код кімнати">
+  <div class="top-actions">
+    <button onclick="copyInvite()">🔗 Запросити</button>
+    <button onclick="renameMe()">✏️</button>
+  </div>
+</header>
 
-  <button class="primary" onclick="joinRoom()">
+<main>
+
+<section id="lobby" class="lobby">
+
+  <h1>Ніч починається.</h1>
+
+  <p>
+    Створи кімнату або введи код.
+    Камера й мікрофон працюють через LiveKit,
+    а сама гра — через наш сервер.
+  </p>
+
+  <div class="fields">
+    <input id="name" maxlength="20" placeholder="Твій нік">
+    <input id="room" maxlength="12" placeholder="Код кімнати">
+  </div>
+
+  <button
+    class="primary"
+    style="width:100%;padding:13px"
+    onclick="joinRoom()"
+  >
     Увійти в кімнату
   </button>
 
-  <button onclick="createRoom()">
-    Створити нову кімнату
-  </button>
-
-  <p class="small">
-    Максимум 12 гравців.<br>
-    Для камери та мікрофона дозволь браузеру доступ.
+  <p class="hint">
+    Після входу браузер попросить дозвіл
+    на камеру та мікрофон.
   </p>
 
-  <div id="loginError"></div>
-</div>
+</section>
 
-<div id="app">
+<section id="game" class="hidden">
 
-  <header>
+  <div id="hostPanel" class="hostpanel hidden"></div>
 
-    <strong>🎭 MAFIA</strong>
+  <div id="grid" class="grid"></div>
 
-    <button onclick="copyInvite()">
-      🔗 Запросити
+  <div class="controls">
+
+    <button id="camBtn" onclick="toggleCam()">
+      📷
     </button>
 
-    <button onclick="renameMe()">
-      ✏️ Нік
+    <button id="micBtn" onclick="toggleMic()">
+      🎤
     </button>
 
-    <button onclick="toggleMic()">
-      🎤 Мікрофон
-    </button>
-
-    <button onclick="toggleCamera()">
-      📹 Камера
-    </button>
-
-    <span id="connection" class="connection">
-      Підключення...
-    </span>
-
-  </header>
-
-  <div class="top-info">
-
-    <span>
-      Кімната:
-      <span id="roomCode" class="room-code"></span>
-    </span>
-
-    <span id="hostBadge"></span>
-
-  </div>
-
-  <div id="players"></div>
-
-  <div id="hostControls" class="host-controls">
-
-    <button class="primary" onclick="hostVote()">
-      🗳️ Кандидат
-    </button>
-
-    <button class="danger" onclick="hostKill()">
-      💀 Вбити
-    </button>
-
-    <button onclick="hostClear()">
-      ↩️ Очистити
-    </button>
-
-    <button onclick="hostMute()">
-      🔇 Мікрофон
-    </button>
-
-    <button onclick="hostMuteAll()">
-      🔇 Всім
-    </button>
-
-    <button onclick="transferHost()">
-      👑 Передати ведучого
+    <button onclick="leaveRoom()">
+      ⏻
     </button>
 
   </div>
 
-</div>
+  <div
+    class="hint"
+    style="text-align:center"
+  >
+    🔴 червона рамка — номінований •
+    🔇 мікрофон вимкнений •
+    наведи на гравця, щоб змінити його гучність
+  </div>
+
+</section>
+
+</main>
 
 <script>
-const state = {
-  ws: null,
-  room: null,
-  myId: localStorage.getItem("mafiaPlayerId"),
-  name: localStorage.getItem("mafiaName") || "",
-  hostId: null,
-  players: [],
-  localStream: null,
-  muted: false,
-  cameraOff: false,
-  peers: new Map(),
-  reconnectTimer: null,
-  intentionalClose: false,
-  draggedId: null
-};
+
+const LK = window.LivekitClient;
 
 const $ = id => document.getElementById(id);
 
-function randomRoom() {
-  return Math.random()
-    .toString(36)
-    .substring(2, 8)
-    .toUpperCase();
+let ws;
+let lkRoom;
+let myId;
+let roomCode;
+let state;
+let localName;
+
+const remoteEls = new Map();
+
+const volumes = JSON.parse(
+  localStorage.getItem("mafiaVolumes") || "{}"
+);
+
+function esc(s){
+  return String(s).replace(
+    /[&<>"']/g,
+    c => ({
+      "&":"&amp;",
+      "<":"&lt;",
+      ">":"&gt;",
+      '"':"&quot;",
+      "'":"&#039;"
+    }[c])
+  );
 }
 
-function getRoomFromUrl() {
-  return new URLSearchParams(location.search)
-    .get("room");
+function saveVolumes(){
+  localStorage.setItem(
+    "mafiaVolumes",
+    JSON.stringify(volumes)
+  );
 }
 
-function createRoom() {
-  const room = randomRoom();
-
-  $("roomInput").value = room;
-
-  joinRoom();
+function queryParamRoom(){
+  return new URLSearchParams(
+    location.search
+  ).get("room") || "";
 }
 
-async function joinRoom() {
+$("room").value =
+  queryParamRoom().toUpperCase();
+
+$("name").value =
+  localStorage.getItem("mafiaName") || "";
+
+async function joinRoom(){
 
   const name =
-    $("nameInput").value.trim() ||
-    state.name ||
-    "Гравець";
+    ($("name").value.trim() || "Гравець")
+    .slice(0,20);
 
   const room =
-    $("roomInput").value.trim().toUpperCase();
+    ($("room").value.trim() || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9_-]/g,"")
+    .slice(0,12);
 
-  if (!room) {
-    $("loginError").textContent =
-      "Введи код кімнати.";
+  if(!room){
+    alert("Введи код кімнати.");
     return;
   }
-
-  state.name = name;
-  state.room = room;
 
   localStorage.setItem(
     "mafiaName",
-    state.name
+    name
   );
 
-  localStorage.setItem(
-    "mafiaRoom",
-    state.room
+  localName = name;
+  roomCode = room;
+
+  let pid =
+    localStorage.getItem(
+      "mafiaPlayerId"
+    );
+
+  ws = new WebSocket(
+    (location.protocol === "https:"
+      ? "wss://"
+      : "ws://"
+    ) + location.host
   );
 
-  history.replaceState(
-    {},
-    "",
-    "/?room=" +
-    encodeURIComponent(state.room)
+  ws.onopen = () => {
+
+    ws.send(JSON.stringify({
+      type:"join",
+      room,
+      name,
+      playerId:pid || ""
+    }));
+
+  };
+
+  ws.onmessage = async e => {
+
+    const m = JSON.parse(e.data);
+
+    if(m.type === "joined"){
+
+      myId = m.id;
+
+      localStorage.setItem(
+        "mafiaPlayerId",
+        myId
+      );
+
+      $("roomLabel").textContent =
+        roomCode;
+
+      $("lobby").classList.add(
+        "hidden"
+      );
+
+      $("game").classList.remove(
+        "hidden"
+      );
+
+      await connectLiveKit();
+    }
+
+    if(m.type === "room-state"){
+      state = m;
+      render();
+    }
+
+    if(m.type === "error"){
+      alert(m.message);
+    }
+
+  };
+
+}
+
+async function connectLiveKit(){
+
+  const res = await fetch(
+    "/api/livekit-token",
+    {
+      method:"POST",
+      headers:{
+        "Content-Type":
+          "application/json"
+      },
+      body:JSON.stringify({
+        roomName:roomCode,
+        identity:myId,
+        name:localName
+      })
+    }
   );
 
-  $("login").style.display = "none";
-  $("app").style.display = "block";
+  const data = await res.json();
 
-  $("roomCode").textContent =
+  if(!res.ok){
+    throw new Error(
+      data.error ||
+      "LiveKit token error"
+    );
+  }
+
+  lkRoom = new LK.Room({
+    adaptiveStream:true,
+    dynacast:true,
+    videoCaptureDefaults:{
+      resolution:
+        LK.VideoPresets.h360.resolution,
+      frameRate:20
+    }
+  });
+
+  lkRoom.on(
+    LK.RoomEvent.TrackSubscribed,
+    (track,publication,participant) => {
+      attachRemote(
+        track,
+        participant
+      );
+    }
+  );
+
+  lkRoom.on(
+    LK.RoomEvent.TrackUnsubscribed,
+    (track,publication,participant) => {
+
+      const key =
+        participant.identity +
+        ":" +
+        track.sid;
+
+      const el =
+        remoteEls.get(key);
+
+      if(el){
+        el.remove();
+        remoteEls.delete(key);
+      }
+
+    }
+  );
+
+  lkRoom.on(
+    LK.RoomEvent.ParticipantConnected,
+    () => render()
+  );
+
+  lkRoom.on(
+    LK.RoomEvent.ParticipantDisconnected,
+    p => {
+      removeParticipantMedia(
+        p.identity
+      );
+      render();
+    }
+  );
+
+  lkRoom.on(
+    LK.RoomEvent.LocalTrackPublished,
+    () => render()
+  );
+
+  lkRoom.on(
+    LK.RoomEvent.LocalTrackUnpublished,
+    () => render()
+  );
+
+  await lkRoom.connect(
+    data.serverUrl,
+    data.participantToken
+  );
+
+  await lkRoom.localParticipant
+    .setCameraEnabled(true);
+
+  await lkRoom.localParticipant
+    .setMicrophoneEnabled(true);
+
+  render();
+}
+
+function attachRemote(
+  track,
+  participant
+){
+
+  const tile =
+    document.querySelector(
+      `[data-id="${CSS.escape(
+        participant.identity
+      )}"]`
+    );
+
+  if(!tile)return;
+
+  const el =
+    track.attach();
+
+  el.classList.add("video");
+
+  if(track.kind === "audio"){
+
+    el.autoplay = true;
+
+    el.volume =
+      volumes[
+        participant.identity
+      ] ?? 1;
+
+    el.style.display = "none";
+
+    tile.appendChild(el);
+
+    const slider =
+      tile.querySelector(".vol");
+
+    if(slider){
+      slider.value = el.volume;
+    }
+
+  }else{
+
+    tile
+      .querySelector(".video")
+      ?.remove();
+
+    tile.insertBefore(
+      el,
+      tile.firstChild
+    );
+
+  }
+
+  remoteEls.set(
+    participant.identity +
+      ":" +
+      track.sid,
+    el
+  );
+}
+
+function removeParticipantMedia(
+  identity
+){
+
+  for(
+    const [k,el]
+    of remoteEls
+  ){
+
+    if(
+      k.startsWith(
+        identity + ":"
+      )
+    ){
+
+      el.remove();
+      remoteEls.delete(k);
+
+    }
+
+  }
+}
+
+function getPlayer(id){
+  return state?.players.find(
+    p => p.id === id
+  );
+}
+
+function isMine(p){
+  return p.id === myId;
+}
+
+function render(){
+
+  if(!state)return;
+
+  $("roomLabel").textContent =
     state.room;
 
-  await startMedia();
+  const grid =
+    $("grid");
 
-  connectWebSocket();
-}
+  grid.innerHTML = "";
 
-async function startMedia() {
+  for(
+    const p of state.players
+  ){
 
-  if (state.localStream) return;
+    const tile =
+      document.createElement(
+        "div"
+      );
 
-  try {
+    tile.className =
+      "tile" +
+      (p.dead ? " dead" : "") +
+      (p.nominated
+        ? " nominated"
+        : "");
 
-    state.localStream =
-      await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          facingMode: "user"
-        },
-        audio: true
-      });
+    tile.dataset.id =
+      p.id;
 
-    state.muted = false;
-    state.cameraOff = false;
+    tile.innerHTML = `
 
-  } catch (e) {
+      <div class="empty">
+        📹
+      </div>
 
-    console.error(e);
+      <div class="namebar">
 
-    try {
+        <span>
+          ${esc(p.name)}
+        </span>
 
-      state.localStream =
-        await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: false
-        });
+        ${
+          p.id === state.hostId
+          ? '<span class="host">HOST</span>'
+          : ''
+        }
 
-    } catch {
+        <span
+          class="mic ${
+            p.selfMuted ||
+            p.hostMuted
+              ? "off"
+              : ""
+          }"
+        >
+          ${
+            p.selfMuted ||
+            p.hostMuted
+              ? "🔇"
+              : "🎤"
+          }
+        </span>
 
-      try {
+      </div>
 
-        state.localStream =
-          await navigator.mediaDevices.getUserMedia({
-            video: false,
-            audio: true
-          });
-
-      } catch {
-
-        state.localStream = null;
-
+      ${
+        p.dead
+        ? '<div class="deadlabel">ВИБУВ</div>'
+        : ""
       }
 
+      <input
+        class="vol"
+        type="range"
+        min="0"
+        max="1"
+        step=".05"
+        value="${volumes[p.id] ?? 1}"
+        title="Гучність"
+        oninput="setVolume('${p.id}',this.value)"
+      >
+
+      ${
+        state.hostId === myId
+        ? `
+          <div class="tiletools">
+
+            <button
+              onclick="hostAction('vote','${p.id}')"
+            >
+              🔴
+            </button>
+
+            <button
+              onclick="hostAction('kill','${p.id}')"
+            >
+              ${p.dead ? "↩" : "☠️"}
+            </button>
+
+            ${
+              p.id !== myId
+              ? `
+                <button
+                  onclick="hostAction('mute','${p.id}')"
+                >
+                  ${p.hostMuted ? "🔊" : "🔇"}
+                </button>
+              `
+              : ""
+            }
+
+          </div>
+        `
+        : ""
+      }
+
+    `;
+
+    grid.appendChild(tile);
+  }
+
+  bindLocalVideo();
+
+  renderHostPanel();
+
+  updateButtons();
+}
+
+function bindLocalVideo(){
+
+  if(!lkRoom)return;
+
+  const p =
+    lkRoom.localParticipant;
+
+  const tile =
+    document.querySelector(
+      `[data-id="${CSS.escape(myId)}"]`
+    );
+
+  if(!tile)return;
+
+  const pub =
+    [...p.videoTrackPublications.values()][0];
+
+  if(pub?.track){
+
+    tile
+      .querySelector(".empty")
+      ?.remove();
+
+    tile
+      .querySelector(".video")
+      ?.remove();
+
+    const el =
+      pub.track.attach();
+
+    el.className =
+      "video";
+
+    tile.insertBefore(
+      el,
+      tile.firstChild
+    );
+  }
+}
+
+function setVolume(id,v){
+
+  volumes[id] =
+    Number(v);
+
+  saveVolumes();
+
+  for(
+    const [k,el]
+    of remoteEls
+  ){
+
+    if(
+      k.startsWith(
+        id + ":"
+      ) &&
+      el.tagName === "AUDIO"
+    ){
+
+      el.volume =
+        Number(v);
     }
 
   }
 }
 
-function connectWebSocket() {
+function renderHostPanel(){
 
-  if (
-    state.ws &&
-    (
-      state.ws.readyState === WebSocket.OPEN ||
-      state.ws.readyState === WebSocket.CONNECTING
+  const panel =
+    $("hostPanel");
+
+  if(state.hostId !== myId){
+
+    panel.classList.add(
+      "hidden"
+    );
+
+    return;
+  }
+
+  panel.classList.remove(
+    "hidden"
+  );
+
+  panel.innerHTML = `
+
+    <small>
+      ПАНЕЛЬ ХОСТА
+    </small>
+
+    <button
+      onclick="hostAction('mute-all','')"
+    >
+      🔇 ${
+        state.players.some(
+          p =>
+            p.id !== myId &&
+            !p.hostMuted
+        )
+        ? "Замутити всіх"
+        : "Увімкнути всім"
+      }
+    </button>
+
+    <button
+      onclick="clearAll()"
+    >
+      ↩ Очистити статуси
+    </button>
+
+    <button
+      onclick="copyInvite()"
+    >
+      🔗 Запросити
+    </button>
+
+  `;
+}
+
+function clearAll(){
+
+  state.players
+    .filter(
+      p =>
+        p.dead ||
+        p.nominated
     )
-  ) {
-    return;
-  }
-
-  const protocol =
-    location.protocol === "https:"
-      ? "wss:"
-      : "ws:";
-
-  state.ws = new WebSocket(
-    protocol +
-    "//" +
-    location.host
-  );
-
-  state.ws.onopen = () => {
-
-    $("connection").textContent =
-      "Підключено";
-
-    $("connection").classList.add("ok");
-
-    clearTimeout(state.reconnectTimer);
-
-    send({
-      type: "join",
-      room: state.room,
-      playerId: state.myId,
-      name: state.name
-    });
-
-  };
-
-  state.ws.onmessage = async event => {
-
-    let m;
-
-    try {
-      m = JSON.parse(event.data);
-    } catch {
-      return;
-    }
-
-    await handleMessage(m);
-
-  };
-
-  state.ws.onclose = () => {
-
-    $("connection").textContent =
-      "Перепідключення...";
-
-    $("connection").classList.remove("ok");
-
-    if (!state.intentionalClose) {
-
-      clearTimeout(
-        state.reconnectTimer
-      );
-
-      state.reconnectTimer =
-        setTimeout(
-          connectWebSocket,
-          1500
-        );
-
-    }
-
-  };
-
-  state.ws.onerror = () => {
-    try {
-      state.ws.close();
-    } catch {}
-  };
-}
-
-function send(message) {
-
-  if (
-    state.ws &&
-    state.ws.readyState === WebSocket.OPEN
-  ) {
-    state.ws.send(
-      JSON.stringify(message)
-    );
-  }
-}
-
-async function handleMessage(m) {
-
-  if (m.type === "error") {
-
-    alert(m.message);
-
-    return;
-  }
-
-  if (m.type === "joined") {
-
-    state.myId = m.id;
-    state.hostId = m.hostId;
-
-    localStorage.setItem(
-      "mafiaPlayerId",
-      state.myId
-    );
-
-    renderHost();
-
-    return;
-  }
-
-  if (m.type === "room-state") {
-
-    state.hostId = m.hostId;
-    state.players = m.players || [];
-
-    renderPlayers();
-    renderHost();
-
-    await ensurePeers();
-
-    return;
-  }
-
-  if (m.type === "signal") {
-
-    await handleSignal(
-      m.from,
-      m.data
-    );
-
-    return;
-  }
-
-  if (m.type === "force-mute") {
-
-    if (m.muted !== undefined) {
-
-      state.muted = !!m.muted;
-
-      applyLocalMediaState();
-
-    }
-
-    return;
-  }
-}
-
-function renderHost() {
-
-  const isHost =
-    state.myId === state.hostId;
-
-  $("hostControls").style.display =
-    isHost ? "flex" : "none";
-
-  $("hostBadge").innerHTML =
-    isHost
-      ? '<span class="host-badge">👑 Ти ведучий</span>'
-      : "";
-}
-
-function renderPlayers() {
-
-  const container = $("players");
-
-  const oldVideos = new Map();
-
-  container
-    .querySelectorAll(".player")
-    .forEach(el => {
-
-      const video =
-        el.querySelector("video");
-
-      if (video && video.srcObject) {
-
-        oldVideos.set(
-          el.dataset.id,
-          video.srcObject
-        );
-
-      }
-
-    });
-
-  container.innerHTML = "";
-
-  state.players.forEach(player => {
-
-    const el =
-      document.createElement("div");
-
-    el.className = "player";
-
-    if (player.nominated)
-      el.classList.add("nominated");
-
-    if (player.dead)
-      el.classList.add("dead");
-
-    el.dataset.id = player.id;
-
-    el.draggable =
-      state.myId === state.hostId;
-
-    el.ondragstart = e => {
-
-      state.draggedId =
-        player.id;
-
-      el.classList.add("dragging");
-
-      e.dataTransfer.effectAllowed =
-        "move";
-
-    };
-
-    el.ondragend = () => {
-
-      el.classList.remove(
-        "dragging"
-      );
-
-    };
-
-    el.ondragover = e => {
-
-      if (state.myId !== state.hostId)
-        return;
-
-      e.preventDefault();
-
-    };
-
-    el.ondrop = e => {
-
-      e.preventDefault();
-
-      if (state.myId !== state.hostId)
-        return;
-
-      movePlayer(
-        state.draggedId,
-        player.id
-      );
-
-    };
-
-    const video =
-      document.createElement("video");
-
-    video.autoplay = true;
-    video.playsInline = true;
-    video.muted =
-      player.id === state.myId;
-
-    if (player.id === state.myId) {
-
-      if (state.localStream) {
-        video.srcObject =
-          state.localStream;
-      }
-
-    } else if (
-      oldVideos.has(player.id)
-    ) {
-
-      video.srcObject =
-        oldVideos.get(player.id);
-
-    }
-
-    el.appendChild(video);
-
-    const info =
-      document.createElement("div");
-
-    info.className =
-      "player-info";
-
-    const name =
-      document.createElement("span");
-
-    name.className =
-      "player-name";
-
-    name.textContent =
-      player.name +
-      (
-        player.id === state.myId
-          ? " (ти)"
-          : ""
-      );
-
-    const status =
-      document.createElement("span");
-
-    status.className =
-      "status";
-
-    status.textContent =
-      player.muted
-        ? "🔇"
-        : "🎤";
-
-    info.appendChild(name);
-    info.appendChild(status);
-
-    el.appendChild(info);
-
-    const dead =
-      document.createElement("div");
-
-    dead.className =
-      "dead-overlay";
-
-    dead.textContent = "💀";
-
-    el.appendChild(dead);
-
-    if (
-      state.myId === state.hostId &&
-      player.id !== state.myId
-    ) {
-
-      const controls =
-        document.createElement("div");
-
-      controls.className =
-        "controls";
-
-      const mute =
-        document.createElement("button");
-
-      mute.textContent =
-        player.muted
-          ? "🔊"
-          : "🔇";
-
-      mute.onclick = e => {
-
-        e.stopPropagation();
-
-        hostAction(
-          "mute",
-          player.id
-        );
-
-      };
-
-      controls.appendChild(mute);
-
-      el.appendChild(controls);
-
-    }
-
-    container.appendChild(el);
-
-  });
-
-  attachLocalVideo();
-
-}
-
-function attachLocalVideo() {
-
-  const me =
-    $("players")
-      .querySelector(
-        `[data-id="${CSS.escape(state.myId || "")}"]`
-      );
-
-  if (!me) return;
-
-  const video =
-    me.querySelector("video");
-
-  if (
-    video &&
-    state.localStream &&
-    video.srcObject !== state.localStream
-  ) {
-
-    video.srcObject =
-      state.localStream;
-
-    video.play().catch(() => {});
-
-  }
-
-}
-
-function movePlayer(fromId, toId) {
-
-  if (!fromId || !toId || fromId === toId)
-    return;
-
-  const ids =
-    state.players.map(p => p.id);
-
-  const from =
-    ids.indexOf(fromId);
-
-  const to =
-    ids.indexOf(toId);
-
-  if (from < 0 || to < 0)
-    return;
-
-  const item =
-    ids.splice(from, 1)[0];
-
-  ids.splice(to, 0, item);
-
-  send({
-    type: "order",
-    ids
-  });
-
-}
-
-async function ensurePeers() {
-
-  for (const player of state.players) {
-
-    if (
-      player.id === state.myId ||
-      !player.connected
-    ) continue;
-
-    if (
-      state.peers.has(player.id)
-    ) continue;
-
-    await createPeer(
-      player.id,
-      true
-    );
-
-  }
-
-}
-
-async function createPeer(
-  peerId,
-  initiator
-) {
-
-  if (state.peers.has(peerId))
-    return state.peers.get(peerId);
-
-  const pc =
-    new RTCPeerConnection({
-      iceServers: [
-        {
-          urls:
-            "stun:stun.l.google.com:19302"
-        }
-      ]
-    });
-
-  state.peers.set(
-    peerId,
-    pc
-  );
-
-  if (state.localStream) {
-
-    for (
-      const track
-      of state.localStream.getTracks()
-    ) {
-
-      pc.addTrack(
-        track,
-        state.localStream
-      );
-
-    }
-
-  }
-
-  pc.onicecandidate = event => {
-
-    if (event.candidate) {
-
-      send({
-        type: "signal",
-        to: peerId,
-        data: {
-          type: "candidate",
-          candidate: event.candidate
-        }
-      });
-
-    }
-
-  };
-
-  pc.ontrack = event => {
-
-    const stream =
-      event.streams[0];
-
-    const el =
-      $("players")
-        .querySelector(
-          `[data-id="${CSS.escape(peerId)}"]`
-        );
-
-    if (!el) return;
-
-    const video =
-      el.querySelector("video");
-
-    if (
-      video &&
-      video.srcObject !== stream
-    ) {
-
-      video.srcObject = stream;
-
-      video.play().catch(() => {});
-
-    }
-
-  };
-
-  pc.onconnectionstatechange = () => {
-
-    if (
-      pc.connectionState ===
-        "failed" ||
-      pc.connectionState ===
-        "closed"
-    ) {
-
-      state.peers.delete(
-        peerId
-      );
-
-      try {
-        pc.close();
-      } catch {}
-
-    }
-
-  };
-
-  if (initiator) {
-
-    const offer =
-      await pc.createOffer();
-
-    await pc.setLocalDescription(
-      offer
-    );
-
-    send({
-      type: "signal",
-      to: peerId,
-      data: {
-        type: "offer",
-        offer
-      }
-    });
-
-  }
-
-  return pc;
-}
-
-async function handleSignal(
-  from,
-  data
-) {
-
-  let pc =
-    state.peers.get(from);
-
-  if (!pc) {
-
-    pc =
-      await createPeer(
-        from,
-        false
-      );
-
-  }
-
-  if (data.type === "offer") {
-
-    await pc.setRemoteDescription(
-      data.offer
-    );
-
-    const answer =
-      await pc.createAnswer();
-
-    await pc.setLocalDescription(
-      answer
-    );
-
-    send({
-      type: "signal",
-      to: from,
-      data: {
-        type: "answer",
-        answer
-      }
-    });
-
-  }
-
-  else if (data.type === "answer") {
-
-    await pc.setRemoteDescription(
-      data.answer
-    );
-
-  }
-
-  else if (data.type === "candidate") {
-
-    try {
-
-      await pc.addIceCandidate(
-        data.candidate
-      );
-
-    } catch {}
-
-  }
-
-}
-
-function applyLocalMediaState() {
-
-  if (!state.localStream)
-    return;
-
-  state.localStream
-    .getAudioTracks()
-    .forEach(track => {
-
-      track.enabled =
-        !state.muted;
-
-    });
-
-  state.localStream
-    .getVideoTracks()
-    .forEach(track => {
-
-      track.enabled =
-        !state.cameraOff;
-
-    });
-
-  renderPlayers();
-
-}
-
-async function toggleMic() {
-
-  if (!state.localStream) {
-
-    await startMedia();
-
-  }
-
-  if (!state.localStream) {
-
-    alert(
-      "Не вдалося отримати доступ до мікрофона."
-    );
-
-    return;
-
-  }
-
-  state.muted =
-    !state.muted;
-
-  applyLocalMediaState();
-
-}
-
-async function toggleCamera() {
-
-  if (!state.localStream) {
-
-    await startMedia();
-
-  }
-
-  if (!state.localStream) {
-
-    alert(
-      "Не вдалося отримати доступ до камери."
-    );
-
-    return;
-
-  }
-
-  const tracks =
-    state.localStream.getVideoTracks();
-
-  if (!tracks.length) {
-
-    try {
-
-      const extra =
-        await navigator.mediaDevices
-          .getUserMedia({
-            video: true
-          });
-
-      extra.getVideoTracks()
-        .forEach(track => {
-
-          state.localStream.addTrack(
-            track
+    .forEach(
+      p => {
+
+        if(
+          p.dead ||
+          p.nominated
+        ){
+
+          hostAction(
+            "clear",
+            p.id
           );
 
-        });
+        }
 
-    } catch {
-
-      alert(
-        "Браузер не дозволив доступ до камери."
-      );
-
-      return;
-
-    }
-
-  }
-
-  state.cameraOff =
-    !state.cameraOff;
-
-  applyLocalMediaState();
-
-  reconnectVideoTracks();
-
-}
-
-async function reconnectVideoTracks() {
-
-  for (const [
-    id,
-    pc
-  ] of state.peers) {
-
-    const senders =
-      pc.getSenders();
-
-    const videoTrack =
-      state.localStream
-        ?.getVideoTracks()[0];
-
-    const sender =
-      senders.find(
-        s =>
-          s.track?.kind === "video"
-      );
-
-    if (
-      sender &&
-      videoTrack
-    ) {
-
-      try {
-
-        await sender.replaceTrack(
-          videoTrack
-        );
-
-      } catch {}
-
-    }
-
-  }
-
+      }
+    );
 }
 
 function hostAction(
   action,
   target
-) {
+){
 
-  send({
-    type: "host-action",
-    action,
-    target
-  });
-
-}
-
-function selectedPlayer() {
-
-  return state.players.find(
-    p =>
-      p.nominated &&
-      p.id !== state.myId
+  ws?.send(
+    JSON.stringify({
+      type:"host-action",
+      action,
+      target
+    })
   );
 
 }
 
-function hostVote() {
+async function toggleMic(){
 
-  const target =
-    promptPlayer();
+  const me =
+    getPlayer(myId);
 
-  if (target)
-    hostAction(
-      "vote",
-      target
+  if(me?.hostMuted){
+
+    alert(
+      "Хост вимкнув тобі мікрофон."
     );
 
-}
-
-function hostKill() {
-
-  const target =
-    promptPlayer();
-
-  if (target)
-    hostAction(
-      "kill",
-      target
-    );
-
-}
-
-function hostClear() {
-
-  const target =
-    promptPlayer();
-
-  if (target)
-    hostAction(
-      "clear",
-      target
-    );
-
-}
-
-function hostMute() {
-
-  const target =
-    promptPlayer();
-
-  if (target)
-    hostAction(
-      "mute",
-      target
-    );
-
-}
-
-function promptPlayer() {
-
-  const list =
-    state.players
-      .filter(
-        p => p.id !== state.myId
-      )
-      .map(
-        (p, i) =>
-          `${i + 1}. ${p.name}`
-      )
-      .join("\n");
-
-  if (!list) return null;
-
-  const answer =
-    prompt(
-      "Вибери номер гравця:\n\n" +
-      list
-    );
-
-  const index =
-    Number(answer) - 1;
-
-  const players =
-    state.players.filter(
-      p => p.id !== state.myId
-    );
-
-  return players[index]?.id || null;
-
-}
-
-function hostMuteAll() {
-
-  hostAction(
-    "mute-all",
-    null
-  );
-
-}
-
-function transferHost() {
-
-  const target =
-    promptPlayer();
-
-  if (target) {
-
-    hostAction(
-      "transfer-host",
-      target
-    );
-
+    return;
   }
 
-}
+  if(!lkRoom)return;
 
-async function renameMe() {
+  const enabled =
+    lkRoom
+      .localParticipant
+      .isMicrophoneEnabled;
 
-  const newName =
-    prompt(
-      "Новий нік:",
-      state.name
+  await lkRoom
+    .localParticipant
+    .setMicrophoneEnabled(
+      !enabled
     );
 
-  if (!newName)
-    return;
+  ws?.send(
+    JSON.stringify({
+      type:"media-state",
+      selfMuted:enabled
+    })
+  );
 
-  state.name =
-    newName.trim().slice(0, 20);
+  render();
+}
+
+async function toggleCam(){
+
+  if(!lkRoom)return;
+
+  await lkRoom
+    .localParticipant
+    .setCameraEnabled(
+      !lkRoom
+        .localParticipant
+        .isCameraEnabled
+    );
+
+  render();
+}
+
+function updateButtons(){
+
+  if(!lkRoom)return;
+
+  $("micBtn").textContent =
+    lkRoom
+      .localParticipant
+      .isMicrophoneEnabled
+      ? "🎤"
+      : "🔇";
+
+  $("micBtn").classList.toggle(
+    "off",
+    !lkRoom
+      .localParticipant
+      .isMicrophoneEnabled
+  );
+
+  $("camBtn").textContent =
+    lkRoom
+      .localParticipant
+      .isCameraEnabled
+      ? "📷"
+      : "🚫";
+
+  $("camBtn").classList.toggle(
+    "off",
+    !lkRoom
+      .localParticipant
+      .isCameraEnabled
+  );
+}
+
+function renameMe(){
+
+  const n =
+    prompt(
+      "Новий нік:",
+      localName || "Гравець"
+    );
+
+  if(!n)return;
+
+  localName =
+    n.trim().slice(0,20) ||
+    localName;
 
   localStorage.setItem(
     "mafiaName",
-    state.name
+    localName
   );
 
-  send({
-    type: "rename",
-    name: state.name
-  });
-
+  ws?.send(
+    JSON.stringify({
+      type:"rename",
+      name:localName
+    })
+  );
 }
 
-async function copyInvite() {
+function copyInvite(){
+
+  if(!roomCode)return;
 
   const url =
     location.origin +
-    "/?room=" +
+    location.pathname +
+    "?room=" +
     encodeURIComponent(
-      state.room
+      roomCode
     );
 
-  try {
+  navigator
+    .clipboard
+    ?.writeText(url);
 
-    await navigator.clipboard.writeText(
-      url
-    );
+  alert(
+    "Посилання скопійовано."
+  );
+}
 
-    alert(
-      "Посилання скопійовано!"
-    );
+async function leaveRoom(){
 
-  } catch {
+  try{
+    await lkRoom?.disconnect();
+  }catch{}
 
-    prompt(
-      "Скопіюй посилання:",
-      url
-    );
+  try{
+    ws?.close();
+  }catch{}
 
-  }
-
+  location.href =
+    location.pathname;
 }
 
 window.addEventListener(
   "beforeunload",
   () => {
-
-    state.intentionalClose = true;
-
+    try{
+      lkRoom?.disconnect();
+    }catch{}
   }
 );
-
-window.addEventListener(
-  "load",
-  async () => {
-
-    const room =
-      getRoomFromUrl() ||
-      localStorage.getItem(
-        "mafiaRoom"
-      );
-
-    const savedName =
-      localStorage.getItem(
-        "mafiaName"
-      );
-
-    if (savedName)
-      $("nameInput").value =
-        savedName;
-
-    if (room) {
-
-      $("roomInput").value =
-        room;
-
-    }
-
-  }
-);
-
-setInterval(() => {
-
-  if (
-    state.ws &&
-    state.ws.readyState === WebSocket.OPEN
-  ) {
-
-    send({
-      type: "ping"
-    });
-
-  }
-
-}, 10000);
 
 </script>
 
