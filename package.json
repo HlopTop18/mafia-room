@@ -1,6 +1,6 @@
 {
   "name": "mafia-room",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "express": "^5.1.0",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "livekit-server-sdk": "^2.19.1"
   }
 }
