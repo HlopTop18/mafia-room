@@ -1,407 +1,334 @@
-import express from "express";
-import { createServer } from "http";
-import { WebSocketServer } from "ws";
-import crypto from "crypto";
-import { AccessToken } from "livekit-server-sdk";
+const express = require("express");
+const http = require("http");
+const path = require("path");
+const { AccessToken } = require("livekit-server-sdk");
+const WebSocket = require("ws");
 
 const app = express();
-const server = createServer(app);
-const wss = new WebSocketServer({ server });
+const server = http.createServer(app);
 
-const rooms = new Map();
-const TTL = 15 * 60 * 1000;
-const MAX = 12;
+const PORT = process.env.PORT || 3000;
+
+const LIVEKIT_URL = process.env.LIVEKIT_URL;
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
+
+const MAX_PLAYERS = 12;
 
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
-app.get("/api/health", (req, res) => {
-  res.json({
-    ok: true,
-    livekitConfigured: !!(
-      process.env.LIVEKIT_URL &&
-      process.env.LIVEKIT_API_KEY &&
-      process.env.LIVEKIT_API_SECRET
-    )
-  });
-});
+const rooms = new Map();
 
-app.post("/api/livekit-token", async (req, res) => {
-  try {
-    const { roomName, identity, name } = req.body || {};
-
-    if (
-      !process.env.LIVEKIT_URL ||
-      !process.env.LIVEKIT_API_KEY ||
-      !process.env.LIVEKIT_API_SECRET
-    ) {
-      return res
-        .status(500)
-        .json({ error: "LiveKit is not configured on the server." });
+function getRoom(roomName) {
+    if (!rooms.has(roomName)) {
+        rooms.set(roomName, {
+            players: new Map(),
+            host: null
+        });
     }
 
-    const room = String(roomName || "")
-      .trim()
-      .toUpperCase()
-      .slice(0, 32);
-
-    const id = String(identity || "")
-      .trim()
-      .slice(0, 64);
-
-    const displayName = String(name || "Гравець")
-      .trim()
-      .slice(0, 40);
-
-    if (!room || !id) {
-      return res
-        .status(400)
-        .json({ error: "roomName and identity are required." });
-    }
-
-    const token = new AccessToken(
-      process.env.LIVEKIT_API_KEY,
-      process.env.LIVEKIT_API_SECRET,
-      {
-        identity: id,
-        name: displayName,
-        ttl: "6h"
-      }
-    );
-
-    token.addGrant({
-      roomJoin: true,
-      room,
-      canPublish: true,
-      canSubscribe: true,
-      canPublishData: true
-    });
-
-    res.json({
-      serverUrl: process.env.LIVEKIT_URL,
-      participantToken: await token.toJwt()
-    });
-  } catch (e) {
-    console.error(e);
-    res
-      .status(500)
-      .json({ error: "Could not create LiveKit token." });
-  }
-});
-
-const makeId = () =>
-  crypto.randomBytes(5).toString("hex").toUpperCase();
-
-const send = (ws, msg) =>
-  ws?.readyState === 1 &&
-  ws.send(JSON.stringify(msg));
-
-const snapshot = (r) => ({
-  type: "room-state",
-  room: r.code,
-  hostId: r.hostId,
-  players: [...r.players.values()].map((p) => ({
-    id: p.id,
-    name: p.name,
-    dead: p.dead,
-    nominated: p.nominated,
-    selfMuted: p.selfMuted,
-    hostMuted: p.hostMuted,
-    connected: !!p.ws
-  }))
-});
-
-const broadcast = (r, msg) =>
-  r.players.forEach(
-    (p) => p.ws && send(p.ws, msg)
-  );
-
-function getRoom(code) {
-  if (!rooms.has(code)) {
-    rooms.set(code, {
-      code,
-      hostId: null,
-      players: new Map()
-    });
-  }
-
-  return rooms.get(code);
+    return rooms.get(roomName);
 }
 
-wss.on("connection", (ws) => {
-  ws.on("message", (raw) => {
-    let m;
+/* =========================
+   LIVEKIT TOKEN
+========================= */
 
+app.post("/api/livekit-token", async (req, res) => {
     try {
-      m = JSON.parse(raw);
-    } catch {
-      return;
-    }
+        const { roomName, participantName } = req.body;
 
-    if (m.type === "join") {
-      const code = String(m.room || "")
-        .toUpperCase()
-        .slice(0, 12);
-
-      if (!code) {
-        return send(ws, {
-          type: "error",
-          message: "Немає коду кімнати."
-        });
-      }
-
-      const r = getRoom(code);
-
-      const requestedId = String(m.playerId || "");
-
-      let p =
-        requestedId &&
-        r.players.get(requestedId);
-
-      if (p) {
-        if (p.ws && p.ws !== ws) {
-          p.ws.close();
+        if (!roomName || !participantName) {
+            return res.status(400).json({
+                error: "roomName та participantName обов'язкові"
+            });
         }
 
-        p.ws = ws;
-        p.lastSeen = Date.now();
+        if (!LIVEKIT_API_KEY || !LIVEKIT_API_SECRET || !LIVEKIT_URL) {
+            return res.status(500).json({
+                error: "LiveKit не налаштований на сервері"
+            });
+        }
 
-        p.name = String(
-          m.name || p.name || "Гравець"
-        ).slice(0, 20);
-      } else {
+        const room = getRoom(roomName);
+
         if (
-          [...r.players.values()].filter(
-            (x) => x.ws
-          ).length >= MAX
+            !room.players.has(participantName) &&
+            room.players.size >= MAX_PLAYERS
         ) {
-          return send(ws, {
-            type: "error",
-            message:
-              "У кімнаті вже 12 активних гравців."
-          });
+            return res.status(403).json({
+                error: `У кімнаті може бути максимум ${MAX_PLAYERS} учасників`
+            });
         }
 
-        p = {
-          id: makeId(),
-          name: String(
-            m.name || "Гравець"
-          ).slice(0, 20),
-          ws,
-          dead: false,
-          nominated: false,
-          selfMuted: false,
-          hostMuted: false,
-          lastSeen: Date.now()
-        };
-
-        r.players.set(p.id, p);
-
-        if (!r.hostId) {
-          r.hostId = p.id;
-        }
-      }
-
-      ws.playerId = p.id;
-      ws.roomId = code;
-
-      send(ws, {
-        type: "joined",
-        id: p.id,
-        room: code,
-        hostId: r.hostId
-      });
-
-      broadcast(r, snapshot(r));
-
-      return;
-    }
-
-    const r = rooms.get(ws.roomId);
-    const p = r?.players.get(ws.playerId);
-
-    if (!r || !p) return;
-
-    if (m.type === "rename") {
-      p.name = String(
-        m.name || p.name
-      ).slice(0, 20);
-
-      broadcast(r, snapshot(r));
-    }
-
-    else if (m.type === "media-state") {
-      if (typeof m.selfMuted === "boolean") {
-        p.selfMuted = m.selfMuted;
-      }
-
-      broadcast(r, snapshot(r));
-    }
-
-    else if (m.type === "host-action") {
-      if (r.hostId !== p.id) return;
-
-      const target =
-        r.players.get(
-          String(m.target || "")
-        );
-
-      if (m.action === "vote" && target) {
-        target.nominated =
-          !target.nominated;
-      }
-
-      if (m.action === "kill" && target) {
-        target.dead = !target.dead;
-        target.nominated = false;
-      }
-
-      if (m.action === "clear" && target) {
-        target.dead = false;
-        target.nominated = false;
-      }
-
-      if (
-        m.action === "mute" &&
-        target &&
-        target.id !== r.hostId
-      ) {
-        target.hostMuted =
-          !target.hostMuted;
-      }
-
-      if (m.action === "mute-all") {
-        const list = [
-          ...r.players.values()
-        ].filter(
-          (x) => x.id !== r.hostId
-        );
-
-        const mute = list.some(
-          (x) => !x.hostMuted
-        );
-
-        list.forEach(
-          (x) => (x.hostMuted = mute)
-        );
-      }
-
-      if (
-        m.action === "transfer-host" &&
-        target
-      ) {
-        r.hostId = target.id;
-        target.hostMuted = false;
-      }
-
-      broadcast(r, snapshot(r));
-    }
-
-    else if (
-      m.type === "order" &&
-      r.hostId === p.id &&
-      Array.isArray(m.ids)
-    ) {
-      const ids = m.ids
-        .map(String)
-        .filter((x) => r.players.has(x));
-
-      const index = (id) => {
-        const i = ids.indexOf(id);
-        return i < 0 ? 999 : i;
-      };
-
-      r.players = new Map(
-        [...r.players.values()]
-          .sort(
-            (a, b) =>
-              index(a.id) - index(b.id)
-          )
-          .map((x) => [x.id, x])
-      );
-
-      broadcast(r, snapshot(r));
-    }
-
-    else if (m.type === "ping") {
-      p.lastSeen = Date.now();
-
-      send(ws, {
-        type: "pong"
-      });
-    }
-  });
-
-  ws.on("close", () => {
-    const r = rooms.get(ws.roomId);
-    const p = r?.players.get(ws.playerId);
-
-    if (!r || !p || p.ws !== ws) return;
-
-    p.ws = null;
-    p.lastSeen = Date.now();
-
-    broadcast(r, snapshot(r));
-
-    setTimeout(() => {
-      const x = r.players.get(p.id);
-
-      if (
-        x &&
-        !x.ws &&
-        Date.now() - x.lastSeen >= TTL
-      ) {
-        r.players.delete(p.id);
-
-        if (r.hostId === p.id) {
-          r.hostId =
-            [...r.players.values()][0]?.id ||
-            null;
+        if (!room.players.has(participantName)) {
+            room.players.set(participantName, {
+                name: participantName,
+                joinedAt: Date.now()
+            });
         }
 
-        broadcast(r, snapshot(r));
-
-        if (!r.players.size) {
-          rooms.delete(r.code);
+        if (!room.host) {
+            room.host = participantName;
         }
-      }
-    }, TTL + 1000);
-  });
+
+        const token = new AccessToken(
+            LIVEKIT_API_KEY,
+            LIVEKIT_API_SECRET,
+            {
+                identity: participantName,
+                name: participantName,
+                ttl: "6h"
+            }
+        );
+
+        token.addGrant({
+            roomJoin: true,
+            room: roomName,
+            canPublish: true,
+            canSubscribe: true,
+            canPublishData: true
+        });
+
+        const jwt = await token.toJwt();
+
+        res.json({
+            token: jwt,
+            url: LIVEKIT_URL,
+            roomName,
+            participantName,
+            host: room.host === participantName,
+            maxPlayers: MAX_PLAYERS
+        });
+
+    } catch (error) {
+        console.error("LiveKit token error:", error);
+
+        res.status(500).json({
+            error: "Не вдалося створити токен"
+        });
+    }
 });
 
-setInterval(() => {
-  const now = Date.now();
+/* =========================
+   ROOM INFO
+========================= */
 
-  for (const r of rooms.values()) {
-    for (const p of r.players.values()) {
-      if (
-        !p.ws &&
-        now - p.lastSeen > TTL
-      ) {
-        r.players.delete(p.id);
-      }
-    }
+app.get("/api/room/:roomName", (req, res) => {
+    const roomName = req.params.roomName;
+    const room = getRoom(roomName);
 
-    if (
-      r.hostId &&
-      !r.players.has(r.hostId)
-    ) {
-      r.hostId =
-        [...r.players.values()][0]?.id ||
-        null;
-    }
+    res.json({
+        roomName,
+        host: room.host,
+        players: Array.from(room.players.values()),
+        count: room.players.size,
+        maxPlayers: MAX_PLAYERS
+    });
+});
 
-    if (!r.players.size) {
-      rooms.delete(r.code);
-    }
-  }
-}, 60000);
+/* =========================
+   WEBSOCKET
+========================= */
 
-server.listen(
-  process.env.PORT || 3000,
-  () => {
-    console.log(
-      "Mafia Room 3.0 + LiveKit running"
+const wss = new WebSocket.Server({
+    server,
+    path: "/ws"
+});
+
+function broadcast(roomName, message, exclude = null) {
+    wss.clients.forEach(client => {
+        if (
+            client.readyState === WebSocket.OPEN &&
+            client.roomName === roomName &&
+            client !== exclude
+        ) {
+            client.send(JSON.stringify(message));
+        }
+    });
+}
+
+wss.on("connection", socket => {
+
+    socket.roomName = null;
+    socket.playerName = null;
+
+    socket.on("message", rawMessage => {
+        try {
+            const message = JSON.parse(rawMessage.toString());
+
+            /* JOIN */
+
+            if (message.type === "join") {
+                const roomName = String(message.roomName || "").trim();
+                const playerName = String(message.playerName || "").trim();
+
+                if (!roomName || !playerName) {
+                    return;
+                }
+
+                const room = getRoom(roomName);
+
+                if (
+                    !room.players.has(playerName) &&
+                    room.players.size >= MAX_PLAYERS
+                ) {
+                    socket.send(JSON.stringify({
+                        type: "error",
+                        message: `Кімната вже заповнена. Максимум ${MAX_PLAYERS} учасників.`
+                    }));
+
+                    return;
+                }
+
+                socket.roomName = roomName;
+                socket.playerName = playerName;
+
+                if (!room.players.has(playerName)) {
+                    room.players.set(playerName, {
+                        name: playerName,
+                        joinedAt: Date.now()
+                    });
+                }
+
+                if (!room.host) {
+                    room.host = playerName;
+                }
+
+                socket.send(JSON.stringify({
+                    type: "room-info",
+                    roomName,
+                    host: room.host,
+                    players: Array.from(room.players.values()),
+                    maxPlayers: MAX_PLAYERS
+                }));
+
+                broadcast(
+                    roomName,
+                    {
+                        type: "player-joined",
+                        player: {
+                            name: playerName
+                        },
+                        players: Array.from(room.players.values())
+                    },
+                    socket
+                );
+            }
+
+            /* CHAT / DATA */
+
+            if (
+                message.type === "chat" ||
+                message.type === "game-action" ||
+                message.type === "player-action"
+            ) {
+                if (!socket.roomName) {
+                    return;
+                }
+
+                broadcast(
+                    socket.roomName,
+                    {
+                        ...message,
+                        from: socket.playerName
+                    }
+                );
+            }
+
+            /* HOST */
+
+            if (message.type === "host-action") {
+                if (!socket.roomName) {
+                    return;
+                }
+
+                const room = getRoom(socket.roomName);
+
+                if (room.host !== socket.playerName) {
+                    return;
+                }
+
+                broadcast(socket.roomName, {
+                    type: "host-action",
+                    action: message.action,
+                    target: message.target || null,
+                    from: socket.playerName
+                });
+            }
+
+        } catch (error) {
+            console.error("WebSocket message error:", error);
+        }
+    });
+
+    socket.on("close", () => {
+
+        if (!socket.roomName || !socket.playerName) {
+            return;
+        }
+
+        const room = rooms.get(socket.roomName);
+
+        if (!room) {
+            return;
+        }
+
+        room.players.delete(socket.playerName);
+
+        /* Якщо вийшов ведучий — передаємо роль наступному */
+
+        if (room.host === socket.playerName) {
+            const nextPlayer = room.players.keys().next().value;
+
+            room.host = nextPlayer || null;
+
+            if (nextPlayer) {
+                broadcast(socket.roomName, {
+                    type: "host-changed",
+                    host: nextPlayer
+                });
+            }
+        }
+
+        broadcast(socket.roomName, {
+            type: "player-left",
+            playerName: socket.playerName,
+            players: Array.from(room.players.values()),
+            host: room.host
+        });
+
+        /* Видаляємо порожню кімнату */
+
+        if (room.players.size === 0) {
+            rooms.delete(socket.roomName);
+        }
+    });
+});
+
+/* =========================
+   FRONTEND FALLBACK
+========================= */
+
+app.get("*", (req, res) => {
+    res.sendFile(
+        path.join(__dirname, "public", "index.html")
     );
-  }
-);
+});
+
+/* =========================
+   START SERVER
+========================= */
+
+server.listen(PORT, () => {
+    console.log(`Server started on port ${PORT}`);
+
+    console.log(
+        `LiveKit URL: ${LIVEKIT_URL || "НЕ ВКАЗАНО"}`
+    );
+
+    console.log(
+        `Maximum players: ${MAX_PLAYERS}`
+    );
+});
