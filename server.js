@@ -8,169 +8,398 @@ const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 const rooms = new Map();
+const RECONNECT_TTL = 15 * 60 * 1000;
 
 app.use(express.static("public"));
 
+app.get("/{*splat}", (req, res) => {
+  res.sendFile(process.cwd() + "/public/index.html");
+});
 
-
-function generateId() {
-  return crypto.randomBytes(3).toString("hex").toUpperCase();
+function id() {
+  return crypto.randomBytes(5).toString("hex").toUpperCase();
 }
 
-wss.on("connection", (ws) => {
+function send(ws, msg) {
+  if (ws?.readyState === 1) {
+    ws.send(JSON.stringify(msg));
+  }
+}
 
-  ws.on("message", (raw) => {
+function broadcast(room, msg, exceptId = null) {
+  for (const p of room.players.values()) {
+    if (p.ws && p.id !== exceptId) {
+      send(p.ws, msg);
+    }
+  }
+}
 
-    let message;
+function snapshot(room) {
+  return [...room.players.values()].map(p => ({
+    id: p.id,
+    name: p.name,
+    dead: !!p.dead,
+    nominated: !!p.nominated,
+    muted: !!p.muted,
+    connected: !!p.ws
+  }));
+}
+
+function roomState(room) {
+  return {
+    type: "room-state",
+    room: room.code,
+    hostId: room.hostId,
+    players: snapshot(room)
+  };
+}
+
+function getOrCreate(code) {
+  let room = rooms.get(code);
+
+  if (!room) {
+    room = {
+      code,
+      hostId: null,
+      players: new Map()
+    };
+
+    rooms.set(code, room);
+  }
+
+  return room;
+}
+
+function cleanupRoom(room) {
+  if (!room.players.size) {
+    rooms.delete(room.code);
+  }
+}
+
+wss.on("connection", ws => {
+
+  ws.on("message", raw => {
+
+    let m;
 
     try {
-      message = JSON.parse(raw);
+      m = JSON.parse(raw);
     } catch {
       return;
     }
 
-    // Приєднання до кімнати
-    if (message.type === "join") {
+    if (m.type === "join") {
 
-      const roomId = (message.room || "")
+      const code = String(m.room || "")
         .toUpperCase()
-        .slice(0, 6);
+        .slice(0, 12);
 
-      if (!roomId) return;
-
-      if (!rooms.has(roomId)) {
-        rooms.set(roomId, new Map());
-      }
-
-      const room = rooms.get(roomId);
-
-      // Максимум 12 гравців
-      if (room.size >= 12) {
-        ws.send(JSON.stringify({
+      if (!code) {
+        return send(ws, {
           type: "error",
-          message: "У лобі вже 12 учасників."
-        }));
-
-        return;
+          message: "Немає коду кімнати."
+        });
       }
 
-      const playerId = generateId();
+      const room = getOrCreate(code);
 
-      ws.playerId = playerId;
-      ws.roomId = roomId;
-      ws.name = (message.name || "Гравець").slice(0, 20);
+      const requestedId = String(m.playerId || "");
 
-      room.set(playerId, ws);
+      let player = requestedId
+        ? room.players.get(requestedId)
+        : null;
 
-      ws.send(JSON.stringify({
+      if (player) {
+
+        if (player.ws && player.ws !== ws) {
+          player.ws.close();
+        }
+
+        player.ws = ws;
+        player.lastSeen = Date.now();
+
+        player.name = String(
+          m.name || player.name || "Гравець"
+        ).slice(0, 20);
+
+      } else {
+
+        const connected = [
+          ...room.players.values()
+        ].filter(p => p.ws).length;
+
+        if (connected >= 12) {
+
+          return send(ws, {
+            type: "error",
+            message: "У лобі вже 12 учасників."
+          });
+
+        }
+
+        player = {
+          id: id(),
+          name: String(
+            m.name || "Гравець"
+          ).slice(0, 20),
+          ws,
+          dead: false,
+          nominated: false,
+          muted: false,
+          lastSeen: Date.now()
+        };
+
+        room.players.set(player.id, player);
+
+        if (!room.hostId) {
+          room.hostId = player.id;
+        }
+      }
+
+      ws.playerId = player.id;
+      ws.roomId = room.code;
+
+      send(ws, {
         type: "joined",
-        id: playerId,
-        host: room.size === 1,
-        players: [...room].map(([id, client]) => ({
-          id,
-          name: client.name
-        }))
-      }));
+        id: player.id,
+        room: room.code,
+        hostId: room.hostId
+      });
 
-      broadcast(room, {
-        type: "player-joined",
-        id: playerId,
-        name: ws.name
-      }, ws);
+      broadcast(room, roomState(room));
 
       return;
     }
 
     const room = rooms.get(ws.roomId);
+    const player = room?.players.get(ws.playerId);
 
-    if (!room) return;
+    if (!room || !player) return;
 
-    // Зміна нікнейму
-    if (message.type === "rename") {
+    if (m.type === "rename") {
 
-      ws.name = (message.name || ws.name).slice(0, 20);
+      player.name = String(
+        m.name || player.name
+      ).slice(0, 20);
 
-      broadcast(room, {
-        type: "renamed",
-        id: ws.playerId,
-        name: ws.name
-      });
+      broadcast(room, roomState(room));
 
     }
 
-    // WebRTC сигнал
-    else if (message.type === "signal") {
+    else if (m.type === "host-action") {
 
-      const target = room.get(message.to);
+      if (room.hostId !== player.id) return;
 
-      if (target) {
+      const target = room.players.get(
+        String(m.target || "")
+      );
 
-        target.send(JSON.stringify({
-          type: "signal",
-          from: ws.playerId,
-          data: message.data
-        }));
+      if (m.action === "vote" && target) {
+        target.nominated = !target.nominated;
+      }
+
+      if (m.action === "kill" && target) {
+        target.dead = !target.dead;
+        target.nominated = false;
+      }
+
+      if (m.action === "clear" && target) {
+        target.dead = false;
+        target.nominated = false;
+      }
+
+      if (m.action === "mute" && target) {
+
+        if (target.id !== room.hostId) {
+          target.muted = !target.muted;
+        }
 
       }
 
+      if (m.action === "mute-all") {
+
+        const shouldMute = [
+          ...room.players.values()
+        ].some(
+          p => p.id !== room.hostId && !p.muted
+        );
+
+        for (const p of room.players.values()) {
+
+          if (p.id !== room.hostId) {
+            p.muted = shouldMute;
+          }
+
+        }
+      }
+
+      if (m.action === "transfer-host" && target) {
+        room.hostId = target.id;
+      }
+
+      broadcast(room, roomState(room));
+
+      if (
+        m.action === "mute" ||
+        m.action === "mute-all"
+      ) {
+
+        for (const p of room.players.values()) {
+
+          if (p.ws) {
+
+            send(p.ws, {
+              type: "force-mute",
+              muted: !!p.muted
+            });
+
+          }
+
+        }
+      }
     }
 
-    // Дії ведучого
-    else if (message.type === "host-action") {
+    else if (m.type === "order") {
 
-      broadcast(room, {
-        type: "host-action",
-        action: message.action,
-        target: message.target
+      if (room.hostId !== player.id) return;
+
+      const ids = Array.isArray(m.ids)
+        ? m.ids
+            .map(String)
+            .filter(x => room.players.has(x))
+            .slice(0, 12)
+        : [];
+
+      const map = new Map(
+        ids.map((x, i) => [x, i])
+      );
+
+      const ordered = [
+        ...room.players.values()
+      ].sort(
+        (a, b) =>
+          (map.get(a.id) ?? 999) -
+          (map.get(b.id) ?? 999)
+      );
+
+      room.players = new Map(
+        ordered.map(p => [p.id, p])
+      );
+
+      broadcast(room, roomState(room));
+    }
+
+    else if (m.type === "signal") {
+
+      const target = room.players.get(
+        String(m.to || "")
+      );
+
+      if (target?.ws) {
+
+        send(target.ws, {
+          type: "signal",
+          from: player.id,
+          data: m.data
+        });
+
+      }
+    }
+
+    else if (m.type === "ping") {
+
+      player.lastSeen = Date.now();
+
+      send(ws, {
+        type: "pong"
       });
 
     }
 
   });
 
-  // Гравець вийшов
   ws.on("close", () => {
 
     const room = rooms.get(ws.roomId);
 
-    if (!room) return;
+    const p = room?.players.get(ws.playerId);
 
-    room.delete(ws.playerId);
+    if (!room || !p || p.ws !== ws) return;
 
-    broadcast(room, {
-      type: "player-left",
-      id: ws.playerId
-    });
+    p.ws = null;
+    p.lastSeen = Date.now();
 
-    if (room.size === 0) {
-      rooms.delete(ws.roomId);
-    }
+    broadcast(room, roomState(room));
+
+    setTimeout(() => {
+
+      const current = room.players.get(p.id);
+
+      if (
+        current &&
+        !current.ws &&
+        Date.now() - current.lastSeen >= RECONNECT_TTL
+      ) {
+
+        room.players.delete(p.id);
+
+        if (room.hostId === p.id) {
+
+          room.hostId =
+            [...room.players.values()][0]?.id || null;
+
+        }
+
+        broadcast(room, roomState(room));
+
+        cleanupRoom(room);
+      }
+
+    }, RECONNECT_TTL + 1000);
 
   });
 
 });
 
-function broadcast(room, message, except = null) {
+setInterval(() => {
 
-  const data = JSON.stringify(message);
+  const now = Date.now();
 
-  for (const client of room.values()) {
+  for (const room of rooms.values()) {
 
-    if (
-      client !== except &&
-      client.readyState === 1
-    ) {
+    for (const p of room.players.values()) {
 
-      client.send(data);
+      if (
+        !p.ws &&
+        now - p.lastSeen > RECONNECT_TTL
+      ) {
+
+        room.players.delete(p.id);
+
+      }
 
     }
 
+    if (
+      room.hostId &&
+      !room.players.has(room.hostId)
+    ) {
+
+      room.hostId =
+        [...room.players.values()][0]?.id || null;
+
+    }
+
+    cleanupRoom(room);
+
   }
 
-}
+}, 60_000);
 
 const PORT = process.env.PORT || 3000;
 
 server.listen(PORT, () => {
-  console.log(`Mafia Room running on port ${PORT}`);
+  console.log(
+    `Mafia Room running on port ${PORT}`
+  );
 });
