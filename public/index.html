@@ -3,1243 +3,1563 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Mafia Room</title>
 
 <style>
-
-*{
-box-sizing:border-box;
+* {
+  box-sizing: border-box;
 }
 
-body{
-margin:0;
-background:#0b0c10;
-color:#eee;
-font-family:Arial, sans-serif;
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #101114;
+  color: white;
 }
 
-header{
-height:64px;
-background:#12141a;
-border-bottom:1px solid #292d36;
-
-display:flex;
-align-items:center;
-justify-content:space-between;
-
-padding:0 20px;
+header {
+  padding: 14px;
+  background: #181a20;
+  border-bottom: 1px solid #30333b;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.logo{
-font-size:20px;
-font-weight:bold;
+input,
+button {
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
 }
 
-.logo span{
-color:#e53945;
+input {
+  background: #252830;
+  color: white;
+  outline: none;
 }
 
-.room{
-font-size:14px;
-color:#aaa;
+button {
+  cursor: pointer;
+  background: #30343d;
+  color: white;
 }
 
-main{
-max-width:1280px;
-margin:auto;
-padding:18px;
+button:hover {
+  background: #414651;
 }
 
-.controls{
-display:flex;
-gap:8px;
-flex-wrap:wrap;
-margin-bottom:15px;
+button.primary {
+  background: #7b1e1e;
 }
 
-input{
-background:#171a21;
-border:1px solid #343946;
-border-radius:9px;
-padding:11px;
-color:white;
+button.green {
+  background: #176b3a;
 }
 
-button{
-background:#252a35;
-color:white;
-border:0;
-border-radius:9px;
-padding:11px 15px;
-cursor:pointer;
+button.danger {
+  background: #9e2020;
 }
 
-button:hover{
-background:#343b49;
+button:disabled {
+  opacity: .45;
+  cursor: not-allowed;
 }
 
-.red{
-background:#a82935;
+#app {
+  display: none;
 }
 
-.green{
-background:#176344;
+.top-info {
+  padding: 10px 14px;
+  background: #15171c;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
-/* 4 × 3 */
-
-.board{
-display:grid;
-
-grid-template-columns:
-repeat(4,minmax(0,1fr));
-
-gap:12px;
+.room-code {
+  font-weight: bold;
+  font-size: 18px;
 }
 
-.card{
-background:#171a21;
-
-border:2px solid #2c323d;
-
-border-radius:14px;
-
-padding:7px;
-
-position:relative;
-
-transition:.15s;
+.host-badge {
+  background: #a67c00;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 12px;
 }
 
-.card.vote{
-
-border-color:#ef3340;
-
-box-shadow:
-0 0 0 2px #ef334055,
-0 0 15px #ef334044;
-
+#players {
+  padding: 12px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(3, minmax(150px, 1fr));
+  gap: 10px;
+  min-height: calc(100vh - 130px);
 }
 
-.card.dead{
-opacity:.55;
+.player {
+  position: relative;
+  min-height: 150px;
+  background: #1b1e25;
+  border: 3px solid transparent;
+  border-radius: 12px;
+  overflow: hidden;
+  user-select: none;
 }
 
-.video{
-
-width:100%;
-
-aspect-ratio:16/10;
-
-background:#252a34;
-
-border-radius:9px;
-
-overflow:hidden;
-
-position:relative;
-
-display:flex;
-
-align-items:center;
-
-justify-content:center;
-
+.player.dragging {
+  opacity: .45;
 }
 
-video{
-
-width:100%;
-height:100%;
-
-object-fit:cover;
-
+.player.nominated {
+  border-color: #ff2525;
+  box-shadow: 0 0 16px rgba(255,0,0,.45);
 }
 
-.avatar{
-
-font-size:42px;
-color:#777;
-
+.player.dead {
+  filter: grayscale(.8);
 }
 
-.status{
-
-position:absolute;
-
-right:6px;
-top:6px;
-
-background:#111c;
-
-padding:5px 7px;
-
-border-radius:6px;
-
-font-size:10px;
+video {
+  width: 100%;
+  height: 100%;
+  min-height: 150px;
+  object-fit: cover;
+  display: block;
+  background: #08090b;
 }
 
-.dead-overlay{
-
-position:absolute;
-
-inset:0;
-
-background:#000b;
-
-display:flex;
-
-align-items:center;
-justify-content:center;
-
-font-size:50px;
-
+.player-info {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(0,0,0,.72);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 5px;
 }
 
-.name{
-
-font-weight:bold;
-
-padding:8px 3px 2px;
-
-white-space:nowrap;
-
-overflow:hidden;
-
-text-overflow:ellipsis;
-
+.player-name {
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.number{
-
-font-size:11px;
-
-color:#8f96a4;
-
+.status {
+  font-size: 18px;
 }
 
-.bottom{
-
-margin-top:15px;
-
-padding:12px;
-
-background:#12151b;
-
-border:1px solid #292e38;
-
-border-radius:12px;
-
-display:flex;
-
-align-items:center;
-
-gap:10px;
-
+.dead-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,.62);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+  z-index: 4;
 }
 
-#message{
-
-color:#aaa;
-
-font-size:13px;
-
+.player.dead .dead-overlay {
+  display: flex;
 }
 
-@media(max-width:900px){
-
-.board{
-
-grid-template-columns:
-repeat(4,1fr);
-
-gap:6px;
-
+.controls {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 8;
+  display: flex;
+  gap: 5px;
 }
 
-.card{
-
-padding:4px;
-
+.controls button {
+  padding: 6px 8px;
+  font-size: 12px;
 }
 
-.name{
-
-font-size:12px;
-
+.host-controls {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  transform: translateX(-50%);
+  background: rgba(20,21,25,.95);
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid #383b44;
+  display: none;
+  gap: 7px;
+  z-index: 50;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
+.notice {
+  padding: 20px;
+  text-align: center;
 }
 
-@media(max-width:550px){
-
-.board{
-
-grid-template-columns:
-repeat(2,1fr);
-
+#login {
+  max-width: 440px;
+  margin: 12vh auto;
+  padding: 25px;
+  background: #191b21;
+  border-radius: 14px;
 }
 
+#login h1 {
+  margin-top: 0;
 }
 
+#login input {
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+#login button {
+  width: 100%;
+}
+
+.small {
+  color: #9da1aa;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.connection {
+  padding: 5px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #8b2222;
+}
+
+.connection.ok {
+  background: #176b3a;
+}
+
+@media (max-width: 800px) {
+  #players {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: auto;
+  }
+
+  .player {
+    min-height: 170px;
+  }
+}
+
+@media (max-width: 500px) {
+  header {
+    padding: 10px;
+  }
+
+  #players {
+    padding: 7px;
+    gap: 7px;
+  }
+
+  .player {
+    min-height: 135px;
+  }
+
+  video {
+    min-height: 135px;
+  }
+
+  .host-controls {
+    left: 7px;
+    right: 7px;
+    transform: none;
+    bottom: 7px;
+  }
+}
 </style>
-
 </head>
 
 <body>
 
-<header>
+<div id="login">
+  <h1>🎭 Mafia Room</h1>
 
-<div class="logo">
+  <input id="nameInput" placeholder="Твій нікнейм" maxlength="20">
 
-🔴 MAFIA <span>ROOM</span>
+  <input id="roomInput" placeholder="Код кімнати">
 
+  <button class="primary" onclick="joinRoom()">
+    Увійти в кімнату
+  </button>
+
+  <button onclick="createRoom()">
+    Створити нову кімнату
+  </button>
+
+  <p class="small">
+    Максимум 12 гравців.<br>
+    Для камери та мікрофона дозволь браузеру доступ.
+  </p>
+
+  <div id="loginError"></div>
 </div>
 
-<div class="room">
+<div id="app">
 
-Кімната:
+  <header>
 
-<b id="roomCode">—</b>
+    <strong>🎭 MAFIA</strong>
 
-</div>
+    <button onclick="copyInvite()">
+      🔗 Запросити
+    </button>
 
-</header>
+    <button onclick="renameMe()">
+      ✏️ Нік
+    </button>
 
+    <button onclick="toggleMic()">
+      🎤 Мікрофон
+    </button>
 
-<main>
+    <button onclick="toggleCamera()">
+      📹 Камера
+    </button>
 
-<div class="controls" id="joinPanel">
+    <span id="connection" class="connection">
+      Підключення...
+    </span>
 
-<input
-id="nickname"
-placeholder="Твій нікнейм"
-maxlength="20"
->
+  </header>
 
-<input
-id="roomInput"
-placeholder="Код кімнати"
-maxlength="6"
->
+  <div class="top-info">
 
-<button
-class="red"
-onclick="joinRoom()"
->
+    <span>
+      Кімната:
+      <span id="roomCode" class="room-code"></span>
+    </span>
 
-Увійти в лобі
+    <span id="hostBadge"></span>
 
-</button>
+  </div>
 
-</div>
+  <div id="players"></div>
 
+  <div id="hostControls" class="host-controls">
 
-<div
-class="controls"
-id="hostPanel"
-style="display:none"
->
+    <button class="primary" onclick="hostVote()">
+      🗳️ Кандидат
+    </button>
 
-<button
-onclick="hostAction('vote')"
->
+    <button class="danger" onclick="hostKill()">
+      💀 Вбити
+    </button>
 
-🔴 На голосування
+    <button onclick="hostClear()">
+      ↩️ Очистити
+    </button>
 
-</button>
+    <button onclick="hostMute()">
+      🔇 Мікрофон
+    </button>
 
-<button
-onclick="hostAction('dead')"
->
+    <button onclick="hostMuteAll()">
+      🔇 Всім
+    </button>
 
-☠️ Вбити
+    <button onclick="transferHost()">
+      👑 Передати ведучого
+    </button>
 
-</button>
-
-<button
-onclick="hostAction('clear')"
->
-
-↩️ Очистити
-
-</button>
-
-<button
-class="green"
-onclick="copyInvite()"
->
-
-🔗 Скопіювати запрошення
-
-</button>
+  </div>
 
 </div>
-
-
-<div
-class="board"
-id="board"
->
-
-</div>
-
-
-<div class="bottom">
-
-<span id="message">
-
-Введи нікнейм та код кімнати.
-
-</span>
-
-<span
-id="counter"
-style="margin-left:auto"
->
-
-0/12
-
-</span>
-
-</div>
-
-</main>
-
 
 <script>
-
-const socket =
-new WebSocket(
-(location.protocol === "https:" ? "wss://" : "ws://")
-+
-location.host
-);
-
-
-let myId = null;
-
-let roomId = "";
-
-let isHost = false;
-
-let selectedPlayer = null;
-
-let players = [];
-
-let connections = {};
-
-
-
-/* =========================
-   ПРИЄДНАННЯ
-========================= */
-
-function joinRoom(){
-
-const name =
-document
-.getElementById("nickname")
-.value
-.trim()
-||
-"Гравець";
-
-
-roomId =
-document
-.getElementById("roomInput")
-.value
-.trim()
-.toUpperCase();
-
-
-if(!roomId){
-
-alert("Введи код кімнати");
-
-return;
-
-}
-
-
-socket.send(
-JSON.stringify({
-
-type:"join",
-
-room:roomId,
-
-name:name
-
-})
-);
-
-}
-
-
-
-/* =========================
-   ПОВІДОМЛЕННЯ СЕРВЕРА
-========================= */
-
-socket.onmessage = function(event){
-
-const data =
-JSON.parse(event.data);
-
-
-if(data.type === "error"){
-
-alert(data.message);
-
-return;
-
-}
-
-
-/* Увійшли */
-
-if(data.type === "joined"){
-
-myId=data.id;
-
-isHost=data.host;
-
-
-players =
-data.players.map(player => ({
-
-id:player.id,
-
-name:player.name,
-
-dead:false,
-
-vote:false
-
-}));
-
-
-document
-.getElementById("joinPanel")
-.style.display="none";
-
-
-if(isHost){
-
-document
-.getElementById("hostPanel")
-.style.display="flex";
-
-}
-
-
-document
-.getElementById("roomCode")
-.textContent=roomId;
-
-
-render();
-
-
-startCamera();
-
-}
-
-
-/* Новий гравець */
-
-if(data.type === "player-joined"){
-
-players.push({
-
-id:data.id,
-
-name:data.name,
-
-dead:false,
-
-vote:false
-
-});
-
-
-render();
-
-connectToPlayer(
-data.id,
-true
-);
-
-}
-
-
-/* Вихід */
-
-if(data.type === "player-left"){
-
-players =
-players.filter(
-player =>
-player.id !== data.id
-);
-
-
-if(connections[data.id]){
-
-connections[data.id].close();
-
-delete connections[data.id];
-
-}
-
-
-render();
-
-}
-
-
-/* Перейменування */
-
-if(data.type === "renamed"){
-
-const player =
-players.find(
-p => p.id === data.id
-);
-
-if(player){
-
-player.name=data.name;
-
-render();
-
-}
-
-}
-
-
-/* Дія ведучого */
-
-if(data.type === "host-action"){
-
-const player =
-players.find(
-p => p.id === data.target
-);
-
-if(!player)return;
-
-
-if(data.action==="vote"){
-
-player.vote=true;
-
-}
-
-
-if(data.action==="dead"){
-
-player.dead=true;
-
-player.vote=false;
-
-}
-
-
-if(data.action==="clear"){
-
-player.dead=false;
-
-player.vote=false;
-
-}
-
-
-render();
-
-}
-
-
-/* WebRTC */
-
-if(data.type==="signal"){
-
-handleSignal(
-data.from,
-data.data
-);
-
-}
-
+const state = {
+  ws: null,
+  room: null,
+  myId: localStorage.getItem("mafiaPlayerId"),
+  name: localStorage.getItem("mafiaName") || "",
+  hostId: null,
+  players: [],
+  localStream: null,
+  muted: false,
+  cameraOff: false,
+  peers: new Map(),
+  reconnectTimer: null,
+  intentionalClose: false,
+  draggedId: null
 };
 
+const $ = id => document.getElementById(id);
 
-
-/* =========================
-   ВІДОБРАЖЕННЯ
-========================= */
-
-function render(){
-
-const board =
-document.getElementById("board");
-
-
-board.innerHTML="";
-
-
-players
-.slice(0,12)
-.forEach((player,index)=>{
-
-
-const card =
-document.createElement("div");
-
-
-card.className =
-"card "
-+
-(player.vote ? "vote " : "")
-+
-(player.dead ? "dead" : "");
-
-
-card.innerHTML = `
-
-<div class="video">
-
-<video
-id="video-${player.id}"
-autoplay
-playsinline
-></video>
-
-<div
-class="avatar"
-id="avatar-${player.id}"
->
-👤
-</div>
-
-<div class="status">
-
-${
-player.dead
-?
-"ВИБУВ"
-:
-player.vote
-?
-"ГОЛОСУВАННЯ"
-:
-"ГРАЄ"
+function randomRoom() {
+  return Math.random()
+    .toString(36)
+    .substring(2, 8)
+    .toUpperCase();
 }
 
-</div>
-
-${
-player.dead
-?
-'<div class="dead-overlay">☠️</div>'
-:
-""
+function getRoomFromUrl() {
+  return new URLSearchParams(location.search)
+    .get("room");
 }
 
-</div>
+function createRoom() {
+  const room = randomRoom();
 
+  $("roomInput").value = room;
 
-<div class="name">
+  joinRoom();
+}
 
-${escapeHTML(player.name)}
+async function joinRoom() {
 
-</div>
+  const name =
+    $("nameInput").value.trim() ||
+    state.name ||
+    "Гравець";
 
+  const room =
+    $("roomInput").value.trim().toUpperCase();
 
-<div class="number">
+  if (!room) {
+    $("loginError").textContent =
+      "Введи код кімнати.";
+    return;
+  }
 
-${index+1}
-·
-${player.id===myId ? "це ти" : "учасник"}
+  state.name = name;
+  state.room = room;
 
-</div>
+  localStorage.setItem(
+    "mafiaName",
+    state.name
+  );
 
-`;
+  localStorage.setItem(
+    "mafiaRoom",
+    state.room
+  );
 
+  history.replaceState(
+    {},
+    "",
+    "/?room=" +
+    encodeURIComponent(state.room)
+  );
 
-card.onclick=function(){
+  $("login").style.display = "none";
+  $("app").style.display = "block";
 
-if(!isHost)return;
+  $("roomCode").textContent =
+    state.room;
 
+  await startMedia();
 
-selectedPlayer =
-player.id;
+  connectWebSocket();
+}
 
+async function startMedia() {
 
-document
-.querySelectorAll(".card")
-.forEach(
-element =>
-element.style.outline="none"
-);
+  if (state.localStream) return;
 
+  try {
 
-card.style.outline=
-"2px solid white";
+    state.localStream =
+      await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          facingMode: "user"
+        },
+        audio: true
+      });
 
-};
+    state.muted = false;
+    state.cameraOff = false;
 
+  } catch (e) {
 
-board.appendChild(card);
+    console.error(e);
 
-});
+    try {
 
+      state.localStream =
+        await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
 
-document
-.getElementById("counter")
-.textContent=
-players.length+"/12";
+    } catch {
+
+      try {
+
+        state.localStream =
+          await navigator.mediaDevices.getUserMedia({
+            video: false,
+            audio: true
+          });
+
+      } catch {
+
+        state.localStream = null;
+
+      }
+
+    }
+
+  }
+}
+
+function connectWebSocket() {
+
+  if (
+    state.ws &&
+    (
+      state.ws.readyState === WebSocket.OPEN ||
+      state.ws.readyState === WebSocket.CONNECTING
+    )
+  ) {
+    return;
+  }
+
+  const protocol =
+    location.protocol === "https:"
+      ? "wss:"
+      : "ws:";
+
+  state.ws = new WebSocket(
+    protocol +
+    "//" +
+    location.host
+  );
+
+  state.ws.onopen = () => {
+
+    $("connection").textContent =
+      "Підключено";
+
+    $("connection").classList.add("ok");
+
+    clearTimeout(state.reconnectTimer);
+
+    send({
+      type: "join",
+      room: state.room,
+      playerId: state.myId,
+      name: state.name
+    });
+
+  };
+
+  state.ws.onmessage = async event => {
+
+    let m;
+
+    try {
+      m = JSON.parse(event.data);
+    } catch {
+      return;
+    }
+
+    await handleMessage(m);
+
+  };
+
+  state.ws.onclose = () => {
+
+    $("connection").textContent =
+      "Перепідключення...";
+
+    $("connection").classList.remove("ok");
+
+    if (!state.intentionalClose) {
+
+      clearTimeout(
+        state.reconnectTimer
+      );
+
+      state.reconnectTimer =
+        setTimeout(
+          connectWebSocket,
+          1500
+        );
+
+    }
+
+  };
+
+  state.ws.onerror = () => {
+    try {
+      state.ws.close();
+    } catch {}
+  };
+}
+
+function send(message) {
+
+  if (
+    state.ws &&
+    state.ws.readyState === WebSocket.OPEN
+  ) {
+    state.ws.send(
+      JSON.stringify(message)
+    );
+  }
+}
+
+async function handleMessage(m) {
+
+  if (m.type === "error") {
+
+    alert(m.message);
+
+    return;
+  }
+
+  if (m.type === "joined") {
+
+    state.myId = m.id;
+    state.hostId = m.hostId;
+
+    localStorage.setItem(
+      "mafiaPlayerId",
+      state.myId
+    );
+
+    renderHost();
+
+    return;
+  }
+
+  if (m.type === "room-state") {
+
+    state.hostId = m.hostId;
+    state.players = m.players || [];
+
+    renderPlayers();
+    renderHost();
+
+    await ensurePeers();
+
+    return;
+  }
+
+  if (m.type === "signal") {
+
+    await handleSignal(
+      m.from,
+      m.data
+    );
+
+    return;
+  }
+
+  if (m.type === "force-mute") {
+
+    if (m.muted !== undefined) {
+
+      state.muted = !!m.muted;
+
+      applyLocalMediaState();
+
+    }
+
+    return;
+  }
+}
+
+function renderHost() {
+
+  const isHost =
+    state.myId === state.hostId;
+
+  $("hostControls").style.display =
+    isHost ? "flex" : "none";
+
+  $("hostBadge").innerHTML =
+    isHost
+      ? '<span class="host-badge">👑 Ти ведучий</span>'
+      : "";
+}
+
+function renderPlayers() {
+
+  const container = $("players");
+
+  const oldVideos = new Map();
+
+  container
+    .querySelectorAll(".player")
+    .forEach(el => {
+
+      const video =
+        el.querySelector("video");
+
+      if (video && video.srcObject) {
+
+        oldVideos.set(
+          el.dataset.id,
+          video.srcObject
+        );
+
+      }
+
+    });
+
+  container.innerHTML = "";
+
+  state.players.forEach(player => {
+
+    const el =
+      document.createElement("div");
+
+    el.className = "player";
+
+    if (player.nominated)
+      el.classList.add("nominated");
+
+    if (player.dead)
+      el.classList.add("dead");
+
+    el.dataset.id = player.id;
+
+    el.draggable =
+      state.myId === state.hostId;
+
+    el.ondragstart = e => {
+
+      state.draggedId =
+        player.id;
+
+      el.classList.add("dragging");
+
+      e.dataTransfer.effectAllowed =
+        "move";
+
+    };
+
+    el.ondragend = () => {
+
+      el.classList.remove(
+        "dragging"
+      );
+
+    };
+
+    el.ondragover = e => {
+
+      if (state.myId !== state.hostId)
+        return;
+
+      e.preventDefault();
+
+    };
+
+    el.ondrop = e => {
+
+      e.preventDefault();
+
+      if (state.myId !== state.hostId)
+        return;
+
+      movePlayer(
+        state.draggedId,
+        player.id
+      );
+
+    };
+
+    const video =
+      document.createElement("video");
+
+    video.autoplay = true;
+    video.playsInline = true;
+    video.muted =
+      player.id === state.myId;
+
+    if (player.id === state.myId) {
+
+      if (state.localStream) {
+        video.srcObject =
+          state.localStream;
+      }
+
+    } else if (
+      oldVideos.has(player.id)
+    ) {
+
+      video.srcObject =
+        oldVideos.get(player.id);
+
+    }
+
+    el.appendChild(video);
+
+    const info =
+      document.createElement("div");
+
+    info.className =
+      "player-info";
+
+    const name =
+      document.createElement("span");
+
+    name.className =
+      "player-name";
+
+    name.textContent =
+      player.name +
+      (
+        player.id === state.myId
+          ? " (ти)"
+          : ""
+      );
+
+    const status =
+      document.createElement("span");
+
+    status.className =
+      "status";
+
+    status.textContent =
+      player.muted
+        ? "🔇"
+        : "🎤";
+
+    info.appendChild(name);
+    info.appendChild(status);
+
+    el.appendChild(info);
+
+    const dead =
+      document.createElement("div");
+
+    dead.className =
+      "dead-overlay";
+
+    dead.textContent = "💀";
+
+    el.appendChild(dead);
+
+    if (
+      state.myId === state.hostId &&
+      player.id !== state.myId
+    ) {
+
+      const controls =
+        document.createElement("div");
+
+      controls.className =
+        "controls";
+
+      const mute =
+        document.createElement("button");
+
+      mute.textContent =
+        player.muted
+          ? "🔊"
+          : "🔇";
+
+      mute.onclick = e => {
+
+        e.stopPropagation();
+
+        hostAction(
+          "mute",
+          player.id
+        );
+
+      };
+
+      controls.appendChild(mute);
+
+      el.appendChild(controls);
+
+    }
+
+    container.appendChild(el);
+
+  });
+
+  attachLocalVideo();
 
 }
 
+function attachLocalVideo() {
 
+  const me =
+    $("players")
+      .querySelector(
+        `[data-id="${CSS.escape(state.myId || "")}"]`
+      );
 
-/* =========================
-   КАМЕРА
-========================= */
+  if (!me) return;
 
-async function startCamera(){
+  const video =
+    me.querySelector("video");
 
-try{
+  if (
+    video &&
+    state.localStream &&
+    video.srcObject !== state.localStream
+  ) {
 
-const stream =
-await navigator
-.mediaDevices
-.getUserMedia({
+    video.srcObject =
+      state.localStream;
 
-video:true,
+    video.play().catch(() => {});
 
-audio:true
-
-});
-
-
-const video =
-document.getElementById(
-"video-"+myId
-);
-
-
-if(video){
-
-video.srcObject=stream;
+  }
 
 }
 
+function movePlayer(fromId, toId) {
 
-const avatar =
-document.getElementById(
-"avatar-"+myId
-);
+  if (!fromId || !toId || fromId === toId)
+    return;
 
+  const ids =
+    state.players.map(p => p.id);
 
-if(avatar){
+  const from =
+    ids.indexOf(fromId);
 
-avatar.style.display="none";
+  const to =
+    ids.indexOf(toId);
 
-}
+  if (from < 0 || to < 0)
+    return;
 
+  const item =
+    ids.splice(from, 1)[0];
 
-/* Підключаємо інших */
+  ids.splice(to, 0, item);
 
-players.forEach(
-player=>{
-
-if(player.id!==myId){
-
-connectToPlayer(
-player.id,
-true
-);
-
-}
-
-});
-
+  send({
+    type: "order",
+    ids
+  });
 
 }
 
-catch(error){
+async function ensurePeers() {
 
-document
-.getElementById("message")
-.textContent=
-"Камера або мікрофон не дозволені.";
+  for (const player of state.players) {
 
-}
+    if (
+      player.id === state.myId ||
+      !player.connected
+    ) continue;
 
-}
+    if (
+      state.peers.has(player.id)
+    ) continue;
 
+    await createPeer(
+      player.id,
+      true
+    );
 
-
-/* =========================
-   WEBRTC
-========================= */
-
-function connectToPlayer(
-playerId,
-createOffer
-){
-
-if(connections[playerId]){
-
-return;
+  }
 
 }
 
+async function createPeer(
+  peerId,
+  initiator
+) {
 
-const peer =
-new RTCPeerConnection({
+  if (state.peers.has(peerId))
+    return state.peers.get(peerId);
 
-iceServers:[
+  const pc =
+    new RTCPeerConnection({
+      iceServers: [
+        {
+          urls:
+            "stun:stun.l.google.com:19302"
+        }
+      ]
+    });
 
-{
+  state.peers.set(
+    peerId,
+    pc
+  );
 
-urls:
-"stun:stun.l.google.com:19302"
+  if (state.localStream) {
 
+    for (
+      const track
+      of state.localStream.getTracks()
+    ) {
+
+      pc.addTrack(
+        track,
+        state.localStream
+      );
+
+    }
+
+  }
+
+  pc.onicecandidate = event => {
+
+    if (event.candidate) {
+
+      send({
+        type: "signal",
+        to: peerId,
+        data: {
+          type: "candidate",
+          candidate: event.candidate
+        }
+      });
+
+    }
+
+  };
+
+  pc.ontrack = event => {
+
+    const stream =
+      event.streams[0];
+
+    const el =
+      $("players")
+        .querySelector(
+          `[data-id="${CSS.escape(peerId)}"]`
+        );
+
+    if (!el) return;
+
+    const video =
+      el.querySelector("video");
+
+    if (
+      video &&
+      video.srcObject !== stream
+    ) {
+
+      video.srcObject = stream;
+
+      video.play().catch(() => {});
+
+    }
+
+  };
+
+  pc.onconnectionstatechange = () => {
+
+    if (
+      pc.connectionState ===
+        "failed" ||
+      pc.connectionState ===
+        "closed"
+    ) {
+
+      state.peers.delete(
+        peerId
+      );
+
+      try {
+        pc.close();
+      } catch {}
+
+    }
+
+  };
+
+  if (initiator) {
+
+    const offer =
+      await pc.createOffer();
+
+    await pc.setLocalDescription(
+      offer
+    );
+
+    send({
+      type: "signal",
+      to: peerId,
+      data: {
+        type: "offer",
+        offer
+      }
+    });
+
+  }
+
+  return pc;
 }
-
-]
-
-});
-
-
-connections[playerId]=peer;
-
-
-const localVideo =
-document.getElementById(
-"video-"+myId
-);
-
-
-if(
-localVideo &&
-localVideo.srcObject
-){
-
-localVideo
-.srcObject
-.getTracks()
-.forEach(
-track=>{
-
-peer.addTrack(
-track,
-localVideo.srcObject
-);
-
-});
-
-}
-
-
-peer.ontrack=function(event){
-
-const video =
-document.getElementById(
-"video-"+playerId
-);
-
-
-if(video){
-
-video.srcObject =
-event.streams[0];
-
-
-const avatar =
-document.getElementById(
-"avatar-"+playerId
-);
-
-
-if(avatar){
-
-avatar.style.display="none";
-
-}
-
-}
-
-};
-
-
-peer.onicecandidate=function(event){
-
-if(event.candidate){
-
-socket.send(
-JSON.stringify({
-
-type:"signal",
-
-to:playerId,
-
-data:{
-candidate:event.candidate
-}
-
-})
-);
-
-}
-
-};
-
-
-if(createOffer){
-
-peer
-.createOffer()
-.then(
-offer =>
-peer
-.setLocalDescription(offer)
-)
-.then(()=>{
-
-socket.send(
-JSON.stringify({
-
-type:"signal",
-
-to:playerId,
-
-data:{
-sdp:peer.localDescription
-}
-
-})
-);
-
-});
-
-}
-
-}
-
-
-
-/* =========================
-   WEBRTC SIGNAL
-========================= */
 
 async function handleSignal(
-from,
-data
-){
+  from,
+  data
+) {
 
-if(!connections[from]){
+  let pc =
+    state.peers.get(from);
 
-connectToPlayer(
-from,
-false
+  if (!pc) {
+
+    pc =
+      await createPeer(
+        from,
+        false
+      );
+
+  }
+
+  if (data.type === "offer") {
+
+    await pc.setRemoteDescription(
+      data.offer
+    );
+
+    const answer =
+      await pc.createAnswer();
+
+    await pc.setLocalDescription(
+      answer
+    );
+
+    send({
+      type: "signal",
+      to: from,
+      data: {
+        type: "answer",
+        answer
+      }
+    });
+
+  }
+
+  else if (data.type === "answer") {
+
+    await pc.setRemoteDescription(
+      data.answer
+    );
+
+  }
+
+  else if (data.type === "candidate") {
+
+    try {
+
+      await pc.addIceCandidate(
+        data.candidate
+      );
+
+    } catch {}
+
+  }
+
+}
+
+function applyLocalMediaState() {
+
+  if (!state.localStream)
+    return;
+
+  state.localStream
+    .getAudioTracks()
+    .forEach(track => {
+
+      track.enabled =
+        !state.muted;
+
+    });
+
+  state.localStream
+    .getVideoTracks()
+    .forEach(track => {
+
+      track.enabled =
+        !state.cameraOff;
+
+    });
+
+  renderPlayers();
+
+}
+
+async function toggleMic() {
+
+  if (!state.localStream) {
+
+    await startMedia();
+
+  }
+
+  if (!state.localStream) {
+
+    alert(
+      "Не вдалося отримати доступ до мікрофона."
+    );
+
+    return;
+
+  }
+
+  state.muted =
+    !state.muted;
+
+  applyLocalMediaState();
+
+}
+
+async function toggleCamera() {
+
+  if (!state.localStream) {
+
+    await startMedia();
+
+  }
+
+  if (!state.localStream) {
+
+    alert(
+      "Не вдалося отримати доступ до камери."
+    );
+
+    return;
+
+  }
+
+  const tracks =
+    state.localStream.getVideoTracks();
+
+  if (!tracks.length) {
+
+    try {
+
+      const extra =
+        await navigator.mediaDevices
+          .getUserMedia({
+            video: true
+          });
+
+      extra.getVideoTracks()
+        .forEach(track => {
+
+          state.localStream.addTrack(
+            track
+          );
+
+        });
+
+    } catch {
+
+      alert(
+        "Браузер не дозволив доступ до камери."
+      );
+
+      return;
+
+    }
+
+  }
+
+  state.cameraOff =
+    !state.cameraOff;
+
+  applyLocalMediaState();
+
+  reconnectVideoTracks();
+
+}
+
+async function reconnectVideoTracks() {
+
+  for (const [
+    id,
+    pc
+  ] of state.peers) {
+
+    const senders =
+      pc.getSenders();
+
+    const videoTrack =
+      state.localStream
+        ?.getVideoTracks()[0];
+
+    const sender =
+      senders.find(
+        s =>
+          s.track?.kind === "video"
+      );
+
+    if (
+      sender &&
+      videoTrack
+    ) {
+
+      try {
+
+        await sender.replaceTrack(
+          videoTrack
+        );
+
+      } catch {}
+
+    }
+
+  }
+
+}
+
+function hostAction(
+  action,
+  target
+) {
+
+  send({
+    type: "host-action",
+    action,
+    target
+  });
+
+}
+
+function selectedPlayer() {
+
+  return state.players.find(
+    p =>
+      p.nominated &&
+      p.id !== state.myId
+  );
+
+}
+
+function hostVote() {
+
+  const target =
+    promptPlayer();
+
+  if (target)
+    hostAction(
+      "vote",
+      target
+    );
+
+}
+
+function hostKill() {
+
+  const target =
+    promptPlayer();
+
+  if (target)
+    hostAction(
+      "kill",
+      target
+    );
+
+}
+
+function hostClear() {
+
+  const target =
+    promptPlayer();
+
+  if (target)
+    hostAction(
+      "clear",
+      target
+    );
+
+}
+
+function hostMute() {
+
+  const target =
+    promptPlayer();
+
+  if (target)
+    hostAction(
+      "mute",
+      target
+    );
+
+}
+
+function promptPlayer() {
+
+  const list =
+    state.players
+      .filter(
+        p => p.id !== state.myId
+      )
+      .map(
+        (p, i) =>
+          `${i + 1}. ${p.name}`
+      )
+      .join("\n");
+
+  if (!list) return null;
+
+  const answer =
+    prompt(
+      "Вибери номер гравця:\n\n" +
+      list
+    );
+
+  const index =
+    Number(answer) - 1;
+
+  const players =
+    state.players.filter(
+      p => p.id !== state.myId
+    );
+
+  return players[index]?.id || null;
+
+}
+
+function hostMuteAll() {
+
+  hostAction(
+    "mute-all",
+    null
+  );
+
+}
+
+function transferHost() {
+
+  const target =
+    promptPlayer();
+
+  if (target) {
+
+    hostAction(
+      "transfer-host",
+      target
+    );
+
+  }
+
+}
+
+async function renameMe() {
+
+  const newName =
+    prompt(
+      "Новий нік:",
+      state.name
+    );
+
+  if (!newName)
+    return;
+
+  state.name =
+    newName.trim().slice(0, 20);
+
+  localStorage.setItem(
+    "mafiaName",
+    state.name
+  );
+
+  send({
+    type: "rename",
+    name: state.name
+  });
+
+}
+
+async function copyInvite() {
+
+  const url =
+    location.origin +
+    "/?room=" +
+    encodeURIComponent(
+      state.room
+    );
+
+  try {
+
+    await navigator.clipboard.writeText(
+      url
+    );
+
+    alert(
+      "Посилання скопійовано!"
+    );
+
+  } catch {
+
+    prompt(
+      "Скопіюй посилання:",
+      url
+    );
+
+  }
+
+}
+
+window.addEventListener(
+  "beforeunload",
+  () => {
+
+    state.intentionalClose = true;
+
+  }
 );
 
-}
+window.addEventListener(
+  "load",
+  async () => {
 
+    const room =
+      getRoomFromUrl() ||
+      localStorage.getItem(
+        "mafiaRoom"
+      );
 
-const peer =
-connections[from];
+    const savedName =
+      localStorage.getItem(
+        "mafiaName"
+      );
 
+    if (savedName)
+      $("nameInput").value =
+        savedName;
 
-if(data.sdp){
+    if (room) {
 
-await peer
-.setRemoteDescription(
-data.sdp
+      $("roomInput").value =
+        room;
+
+    }
+
+  }
 );
 
+setInterval(() => {
 
-if(
-data.sdp.type==="offer"
-){
+  if (
+    state.ws &&
+    state.ws.readyState === WebSocket.OPEN
+  ) {
 
-const answer =
-await peer.createAnswer();
+    send({
+      type: "ping"
+    });
 
+  }
 
-await peer
-.setLocalDescription(
-answer
-);
-
-
-socket.send(
-JSON.stringify({
-
-type:"signal",
-
-to:from,
-
-data:{
-sdp:peer.localDescription
-}
-
-})
-);
-
-}
-
-}
-
-
-if(data.candidate){
-
-try{
-
-await peer
-.addIceCandidate(
-data.candidate
-);
-
-}
-
-catch(error){
-
-console.log(error);
-
-}
-
-}
-
-}
-
-
-
-/* =========================
-   ДІЇ ВЕДУЧОГО
-========================= */
-
-function hostAction(action){
-
-if(!isHost){
-
-return;
-
-}
-
-
-if(!selectedPlayer){
-
-alert(
-"Спочатку натисни на гравця."
-);
-
-return;
-
-}
-
-
-socket.send(
-JSON.stringify({
-
-type:"host-action",
-
-action:action,
-
-target:selectedPlayer
-
-})
-);
-
-
-selectedPlayer=null;
-
-}
-
-
-
-/* =========================
-   ЗАПРОШЕННЯ
-========================= */
-
-function copyInvite(){
-
-const url =
-location.origin
-+
-"/?room="
-+
-roomId;
-
-
-navigator
-.clipboard
-.writeText(url);
-
-
-alert(
-"Посилання скопійовано!"
-);
-
-}
-
-
-
-/* =========================
-   HTML БЕЗПЕКА
-========================= */
-
-function escapeHTML(text){
-
-return text.replace(
-/[&<>"']/g,
-function(char){
-
-return {
-
-"&":"&amp;",
-
-"<":"&lt;",
-
-">":"&gt;",
-
-'"':"&quot;",
-
-"'":"&#039;"
-
-}[char];
-
-});
-
-}
-
-
-
-/* =========================
-   КОД З URL
-========================= */
-
-const roomFromURL =
-new URLSearchParams(
-location.search
-).get("room");
-
-
-if(roomFromURL){
-
-document
-.getElementById("roomInput")
-.value=
-roomFromURL;
-
-}
+}, 10000);
 
 </script>
 
