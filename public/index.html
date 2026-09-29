@@ -1,1205 +1,1988 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="uk">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Mafia Room — Night</title>
-<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<style>
-:root{
-  --bg:#08090e;
-  --panel:#10121a;
-  --panel2:#171a24;
-  --line:#292d3a;
-  --text:#f3f5fb;
-  --muted:#9298a8;
-  --red:#ff3b45;
-  --gold:#d7ad63
-}
+    <title>Video Room</title>
 
-*{box-sizing:border-box}
+    <!-- LiveKit -->
+    <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
 
-body{
-  margin:0;
-  background:radial-gradient(circle at 50% -20%,#242033 0,#0b0c12 42%,#05060a 100%);
-  color:var(--text);
-  font:14px Inter,system-ui,Arial,sans-serif;
-  min-height:100vh
-}
+    <style>
+        * {
+            box-sizing: border-box;
+        }
 
-body:before{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  opacity:.22;
-  background-image:
-    linear-gradient(rgba(255,255,255,.02) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.02) 1px,transparent 1px);
-  background-size:40px 40px
-}
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            background: #111827;
+            color: white;
+        }
 
-header{
-  height:64px;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 20px;
-  border-bottom:1px solid #1e212c;
-  background:rgba(7,8,13,.78);
-  backdrop-filter:blur(14px);
-  position:sticky;
-  top:0;
-  z-index:20
-}
+        body {
+            overflow: hidden;
+        }
 
-.brand{
-  font-weight:900;
-  letter-spacing:.08em
-}
+        /* =========================
+           LOGIN
+        ========================= */
 
-.brand span{
-  color:var(--red)
-}
+        #loginScreen {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at top, #273449, #111827 60%);
+        }
 
-.room{
-  color:var(--muted);
-  font-size:12px
-}
+        .login-box {
+            width: min(420px, calc(100% - 30px));
+            padding: 30px;
+            border-radius: 20px;
+            background: #1f2937;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        }
 
-.room b{
-  color:var(--gold)
-}
+        .login-box h1 {
+            margin: 0 0 8px;
+            text-align: center;
+        }
 
-button,input{
-  font:inherit
-}
+        .login-box p {
+            margin: 0 0 25px;
+            text-align: center;
+            color: #9ca3af;
+        }
 
-button{
-  border:1px solid var(--line);
-  background:#171a23;
-  color:var(--text);
-  border-radius:10px;
-  padding:9px 12px;
-  cursor:pointer
-}
+        .field {
+            margin-bottom: 15px;
+        }
 
-button:hover{
-  background:#202431
-}
+        .field label {
+            display: block;
+            margin-bottom: 7px;
+            font-size: 14px;
+            color: #d1d5db;
+        }
 
-button.primary{
-  background:#8f1f29;
-  border-color:#a52a35
-}
+        input {
+            width: 100%;
+            padding: 13px 14px;
+            border: 1px solid #374151;
+            border-radius: 10px;
+            outline: none;
+            background: #111827;
+            color: white;
+            font-size: 16px;
+        }
 
-button.danger{
-  background:#3a1116;
-  border-color:#71212a
-}
+        input:focus {
+            border-color: #60a5fa;
+        }
 
-.top-actions{
-  display:flex;
-  gap:8px
-}
+        #joinButton {
+            width: 100%;
+            padding: 14px;
+            border: 0;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-main{
-  max-width:1500px;
-  margin:auto;
-  padding:18px
-}
+        #joinButton:hover {
+            background: #1d4ed8;
+        }
 
-.lobby{
-  max-width:520px;
-  margin:12vh auto;
-  background:rgba(16,18,26,.92);
-  border:1px solid var(--line);
-  border-radius:20px;
-  padding:28px;
-  box-shadow:0 20px 70px #0008
-}
+        #errorMessage {
+            margin-top: 15px;
+            color: #f87171;
+            text-align: center;
+            min-height: 20px;
+        }
 
-.lobby h1{
-  margin:0 0 8px;
-  font-size:30px
-}
+        /* =========================
+           APP
+        ========================= */
 
-.lobby p{
-  color:var(--muted);
-  line-height:1.5
-}
+        #app {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+        }
 
-.fields{
-  display:grid;
-  gap:10px;
-  margin:22px 0
-}
+        /* =========================
+           HEADER
+        ========================= */
 
-.fields input{
-  background:#0c0e14;
-  color:white;
-  border:1px solid var(--line);
-  border-radius:11px;
-  padding:12px
-}
+        .header {
+            height: 65px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 18px;
+            background: #1f2937;
+            border-bottom: 1px solid #374151;
+        }
 
-.grid{
-  display:grid;
-  grid-template-columns:repeat(4,minmax(0,1fr));
-  gap:12px
-}
+        .room-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-.tile{
-  position:relative;
-  aspect-ratio:16/9;
-  background:#0d0f15;
-  border:1px solid #292d38;
-  border-radius:14px;
-  overflow:hidden;
-  box-shadow:0 10px 30px #0005;
-  transition:.15s
-}
+        .room-title strong {
+            font-size: 17px;
+        }
 
-.tile.nominated{
-  border:3px solid var(--red);
-  box-shadow:0 0 25px #ff334455
-}
+        .room-status {
+            color: #9ca3af;
+            font-size: 13px;
+        }
 
-.tile.dead:after{
-  content:"";
-  position:absolute;
-  inset:0;
-  background:#07080caa
-}
+        .participants-count {
+            color: #9ca3af;
+            font-size: 14px;
+        }
 
-.video{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  background:linear-gradient(135deg,#171a23,#08090e)
-}
+        /* =========================
+           VIDEO AREA
+        ========================= */
 
-.empty{
-  height:100%;
-  display:grid;
-  place-items:center;
-  color:#555b6c
-}
+        #videoGrid {
+            flex: 1;
+            min-height: 0;
+            padding: 12px;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-rows: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            overflow-y: auto;
+        }
 
-.namebar{
-  position:absolute;
-  left:9px;
-  right:9px;
-  bottom:8px;
-  display:flex;
-  align-items:center;
-  gap:7px;
-  z-index:5;
-  padding:7px 9px;
-  border-radius:9px;
-  background:linear-gradient(transparent,#05060acc);
-  font-weight:700
-}
+        .video-card {
+            position: relative;
+            min-width: 0;
+            min-height: 0;
+            overflow: hidden;
+            border-radius: 14px;
+            background: #0b1220;
+            border: 1px solid #374151;
+        }
 
-.mic{
-  font-size:14px
-}
+        .video-card video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            background: #0b1220;
+        }
 
-.mic.off{
-  color:#ff6b73
-}
+        .video-card.no-video video {
+            display: none;
+        }
 
-.host{
-  color:var(--gold);
-  font-size:11px
-}
+        .avatar {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #172033;
+            font-size: clamp(35px, 5vw, 70px);
+            font-weight: bold;
+            color: #9ca3af;
+        }
 
-.deadlabel{
-  position:absolute;
-  inset:0;
-  display:grid;
-  place-items:center;
-  z-index:6;
-  font-size:18px;
-  font-weight:900;
-  letter-spacing:.12em;
-  color:#fff
-}
+        .video-card:not(.no-video) .avatar {
+            display: none;
+        }
 
-.tiletools{
-  position:absolute;
-  right:8px;
-  top:8px;
-  z-index:8;
-  display:flex;
-  gap:5px
-}
+        .participant-name {
+            position: absolute;
+            left: 10px;
+            bottom: 10px;
+            max-width: calc(100% - 20px);
+            padding: 6px 9px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.65);
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-.tiletools button{
-  padding:6px 8px;
-  background:#090a0dcc
-}
+        .mic-status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.65);
+            font-size: 15px;
+        }
 
-.vol{
-  position:absolute;
-  right:8px;
-  bottom:46px;
-  z-index:8;
-  width:90px;
-  opacity:0;
-  transition:.15s
-}
+        .local-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 5px 8px;
+            border-radius: 7px;
+            background: rgba(37, 99, 235, 0.9);
+            font-size: 11px;
+        }
 
-.tile:hover .vol,
-.tile:focus-within .vol{
-  opacity:1
-}
+        /* =========================
+           CONTROLS
+        ========================= */
 
-.controls{
-  display:flex;
-  justify-content:center;
-  gap:10px;
-  margin:16px 0
-}
+        .controls {
+            height: 78px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            background: #1f2937;
+            border-top: 1px solid #374151;
+        }
 
-.controls button{
-  width:46px;
-  height:42px;
-  font-size:18px
-}
+        .control-button {
+            width: 52px;
+            height: 52px;
+            border: 0;
+            border-radius: 50%;
+            background: #374151;
+            color: white;
+            font-size: 21px;
+            cursor: pointer;
+            transition: 0.15s;
+        }
 
-.controls button.off{
-  background:#55151b;
-  border-color:#8b2630
-}
+        .control-button:hover {
+            background: #4b5563;
+        }
 
-.hostpanel{
-  margin:14px 0;
-  padding:12px;
-  border:1px solid var(--line);
-  border-radius:14px;
-  background:#10121acc;
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  align-items:center
-}
+        .control-button.active {
+            background: #2563eb;
+        }
 
-.hostpanel small{
-  color:var(--muted);
-  margin-right:5px
-}
+        .control-button.off {
+            background: #dc2626;
+        }
 
-.hint{
-  color:var(--muted);
-  font-size:12px
-}
+        #leaveButton {
+            width: auto;
+            padding: 0 20px;
+            border-radius: 26px;
+            background: #dc2626;
+            font-size: 15px;
+        }
 
-.hidden{
-  display:none!important
-}
+        #leaveButton:hover {
+            background: #b91c1c;
+        }
 
-@media(max-width:850px){
-  header{
-    padding:0 12px
-  }
+        /* =========================
+           VOLUME PANEL
+        ========================= */
 
-  .grid{
-    grid-template-columns:repeat(2,minmax(0,1fr));
-    gap:8px
-  }
+        #volumePanel {
+            position: fixed;
+            right: 15px;
+            bottom: 95px;
+            width: 260px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+            padding: 15px;
+            border-radius: 14px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+            z-index: 100;
+        }
 
-  main{
-    padding:10px
-  }
+        #volumePanel h3 {
+            margin: 0 0 14px;
+            font-size: 15px;
+        }
 
-  .lobby{
-    margin:8vh auto;
-    padding:20px
-  }
+        .volume-row {
+            margin-bottom: 14px;
+        }
 
-  .room{
-    display:none
-  }
-}
+        .volume-name {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #d1d5db;
+        }
 
-@media(min-width:851px){
-  .grid{
-    grid-template-columns:repeat(4,minmax(0,1fr))
-  }
-}
-</style>
+        .volume-row input[type="range"] {
+            width: 100%;
+        }
+
+        /* =========================
+           MOBILE
+        ========================= */
+
+        @media (max-width: 900px) {
+            #videoGrid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-rows: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .header {
+                height: 55px;
+            }
+
+            .room-status {
+                display: none;
+            }
+
+            #videoGrid {
+                padding: 7px;
+                gap: 7px;
+            }
+
+            .controls {
+                height: 70px;
+            }
+
+            .control-button {
+                width: 46px;
+                height: 46px;
+                font-size: 18px;
+            }
+
+            #leaveButton {
+                padding: 0 14px;
+                font-size: 13px;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
-<header>
-  <div class="brand">
-    MAFIA <span>ROOM</span>
-  </div>
+<!-- =========================
+     LOGIN SCREEN
+========================= -->
 
-  <div class="room">
-    Кімната: <b id="roomLabel">—</b>
-  </div>
+<div id="loginScreen">
 
-  <div class="top-actions">
-    <button onclick="copyInvite()">🔗 Запросити</button>
-    <button onclick="renameMe()">✏️</button>
-  </div>
-</header>
+    <div class="login-box">
 
-<main>
+        <h1>🎥 Video Room</h1>
 
-<section id="lobby" class="lobby">
+        <p>Приєднайся до відеокімнати</p>
 
-  <h1>Ніч починається.</h1>
+        <div class="field">
+            <label for="roomInput">Назва кімнати</label>
+            <input
+                id="roomInput"
+                type="text"
+                placeholder="Наприклад: room123"
+                autocomplete="off"
+            >
+        </div>
 
-  <p>
-    Створи кімнату або введи код.
-    Камера й мікрофон працюють через LiveKit,
-    а сама гра — через наш сервер.
-  </p>
+        <div class="field">
+            <label for="nameInput">Твоє ім'я</label>
+            <input
+                id="nameInput"
+                type="text"
+                placeholder="Введи ім'я"
+                autocomplete="off"
+            >
+        </div>
 
-  <div class="fields">
-    <input id="name" maxlength="20" placeholder="Твій нік">
-    <input id="room" maxlength="12" placeholder="Код кімнати">
-  </div>
+        <button id="joinButton">
+            Увійти в кімнату
+        </button>
 
-  <button
-    class="primary"
-    style="width:100%;padding:13px"
-    onclick="joinRoom()"
-  >
-    Увійти в кімнату
-  </button>
+        <div id="errorMessage"></div>
 
-  <p class="hint">
-    Після входу браузер попросить дозвіл
-    на камеру та мікрофон.
-  </p>
+    </div>
 
-</section>
+</div>
 
-<section id="game" class="hidden">
 
-  <div id="hostPanel" class="hostpanel hidden"></div>
+<!-- =========================
+     MAIN APP
+========================= -->
 
-  <div id="grid" class="grid"></div>
+<div id="app">
 
-  <div class="controls">
+    <header class="header">
 
-    <button id="camBtn" onclick="toggleCam()">
-      📷
-    </button>
+        <div class="room-title">
 
-    <button id="micBtn" onclick="toggleMic()">
-      🎤
-    </button>
+            <strong id="roomNameDisplay">
+                Кімната
+            </strong>
 
-    <button onclick="leaveRoom()">
-      ⏻
-    </button>
+            <span class="room-status" id="connectionStatus">
+                Підключення...
+            </span>
 
-  </div>
+        </div>
 
-  <div
-    class="hint"
-    style="text-align:center"
-  >
-    🔴 червона рамка — номінований •
-    🔇 мікрофон вимкнений •
-    наведи на гравця, щоб змінити його гучність
-  </div>
+        <div class="participants-count" id="participantsCount">
+            0 / 12
+        </div>
 
-</section>
+    </header>
 
-</main>
+
+    <main id="videoGrid"></main>
+
+
+    <div class="controls">
+
+        <button
+            id="cameraButton"
+            class="control-button active"
+            title="Камера"
+        >
+            📹
+        </button>
+
+        <button
+            id="micButton"
+            class="control-button active"
+            title="Мікрофон"
+        >
+            🎤
+        </button>
+
+        <button
+            id="volumeButton"
+            class="control-button"
+            title="Гучність"
+        >
+            🔊
+        </button>
+
+        <button
+            id="leaveButton"
+            class="control-button"
+            title="Вийти"
+        >
+            Вийти
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     VOLUME PANEL
+========================= -->
+
+<div id="volumePanel">
+
+    <h3>🔊 Гучність учасників</h3>
+
+    <div id="volumeList"></div>
+
+</div>
+
 
 <script>
 
-const LK = window.LivekitClient;
+    /* =====================================================
+       GLOBAL VARIABLES
+    ===================================================== */
 
-const $ = id => document.getElementById(id);
+    let room = null;
 
-let ws;
-let lkRoom;
-let myId;
-let roomCode;
-let state;
-let localName;
+    let roomName = "";
+    let participantName = "";
 
-const remoteEls = new Map();
+    let ws = null;
 
-const volumes = JSON.parse(
-  localStorage.getItem("mafiaVolumes") || "{}"
-);
+    const videoElements = new Map();
+    const audioElements = new Map();
+    const participantCards = new Map();
 
-function esc(s){
-  return String(s).replace(
-    /[&<>"']/g,
-    c => ({
-      "&":"&amp;",
-      "<":"&lt;",
-      ">":"&gt;",
-      '"':"&quot;",
-      "'":"&#039;"
-    }[c])
-  );
-}
+    let leaving = false;
 
-function saveVolumes(){
-  localStorage.setItem(
-    "mafiaVolumes",
-    JSON.stringify(volumes)
-  );
-}
 
-function queryParamRoom(){
-  return new URLSearchParams(
-    location.search
-  ).get("room") || "";
-}
+    /* =====================================================
+       DOM
+    ===================================================== */
 
-$("room").value =
-  queryParamRoom().toUpperCase();
+    const loginScreen = document.getElementById("loginScreen");
+    const app = document.getElementById("app");
 
-$("name").value =
-  localStorage.getItem("mafiaName") || "";
+    const roomInput = document.getElementById("roomInput");
+    const nameInput = document.getElementById("nameInput");
 
-async function joinRoom(){
+    const joinButton = document.getElementById("joinButton");
 
-  const name =
-    ($("name").value.trim() || "Гравець")
-    .slice(0,20);
+    const errorMessage = document.getElementById("errorMessage");
 
-  const room =
-    ($("room").value.trim() || "")
-    .toUpperCase()
-    .replace(/[^A-Z0-9_-]/g,"")
-    .slice(0,12);
+    const videoGrid = document.getElementById("videoGrid");
 
-  if(!room){
-    alert("Введи код кімнати.");
-    return;
-  }
+    const roomNameDisplay =
+        document.getElementById("roomNameDisplay");
 
-  localStorage.setItem(
-    "mafiaName",
-    name
-  );
+    const connectionStatus =
+        document.getElementById("connectionStatus");
 
-  localName = name;
-  roomCode = room;
+    const participantsCount =
+        document.getElementById("participantsCount");
 
-  let pid =
-    localStorage.getItem(
-      "mafiaPlayerId"
-    );
+    const cameraButton =
+        document.getElementById("cameraButton");
 
-  ws = new WebSocket(
-    (location.protocol === "https:"
-      ? "wss://"
-      : "ws://"
-    ) + location.host
-  );
+    const micButton =
+        document.getElementById("micButton");
 
-  ws.onopen = () => {
+    const volumeButton =
+        document.getElementById("volumeButton");
 
-    ws.send(JSON.stringify({
-      type:"join",
-      room,
-      name,
-      playerId:pid || ""
-    }));
+    const leaveButton =
+        document.getElementById("leaveButton");
 
-  };
+    const volumePanel =
+        document.getElementById("volumePanel");
 
-  ws.onmessage = async e => {
+    const volumeList =
+        document.getElementById("volumeList");
 
-    const m = JSON.parse(e.data);
 
-    if(m.type === "joined"){
+    /* =====================================================
+       HELPERS
+    ===================================================== */
 
-      myId = m.id;
+    function escapeHtml(value) {
 
-      localStorage.setItem(
-        "mafiaPlayerId",
-        myId
-      );
-
-      $("roomLabel").textContent =
-        roomCode;
-
-      $("lobby").classList.add(
-        "hidden"
-      );
-
-      $("game").classList.remove(
-        "hidden"
-      );
-
-      await connectLiveKit();
-    }
-
-    if(m.type === "room-state"){
-      state = m;
-      render();
-    }
-
-    if(m.type === "error"){
-      alert(m.message);
-    }
-
-  };
-
-}
-
-async function connectLiveKit(){
-
-  const res = await fetch(
-    "/api/livekit-token",
-    {
-      method:"POST",
-      headers:{
-        "Content-Type":
-          "application/json"
-      },
-      body:JSON.stringify({
-        roomName:roomCode,
-        identity:myId,
-        name:localName
-      })
-    }
-  );
-
-  const data = await res.json();
-
-  if(!res.ok){
-    throw new Error(
-      data.error ||
-      "LiveKit token error"
-    );
-  }
-
-  lkRoom = new LK.Room({
-    adaptiveStream:true,
-    dynacast:true,
-    videoCaptureDefaults:{
-      resolution:
-        LK.VideoPresets.h360.resolution,
-      frameRate:20
-    }
-  });
-
-  lkRoom.on(
-    LK.RoomEvent.TrackSubscribed,
-    (track,publication,participant) => {
-      attachRemote(
-        track,
-        participant
-      );
-    }
-  );
-
-  lkRoom.on(
-    LK.RoomEvent.TrackUnsubscribed,
-    (track,publication,participant) => {
-
-      const key =
-        participant.identity +
-        ":" +
-        track.sid;
-
-      const el =
-        remoteEls.get(key);
-
-      if(el){
-        el.remove();
-        remoteEls.delete(key);
-      }
+        return String(value)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
 
     }
-  );
 
-  lkRoom.on(
-    LK.RoomEvent.ParticipantConnected,
-    () => render()
-  );
 
-  lkRoom.on(
-    LK.RoomEvent.ParticipantDisconnected,
-    p => {
-      removeParticipantMedia(
-        p.identity
-      );
-      render();
-    }
-  );
+    function getInitial(name) {
 
-  lkRoom.on(
-    LK.RoomEvent.LocalTrackPublished,
-    () => render()
-  );
-
-  lkRoom.on(
-    LK.RoomEvent.LocalTrackUnpublished,
-    () => render()
-  );
-
-  await lkRoom.connect(
-    data.serverUrl,
-    data.participantToken
-  );
-
-  await lkRoom.localParticipant
-    .setCameraEnabled(true);
-
-  await lkRoom.localParticipant
-    .setMicrophoneEnabled(true);
-
-  render();
-}
-
-function attachRemote(
-  track,
-  participant
-){
-
-  const tile =
-    document.querySelector(
-      `[data-id="${CSS.escape(
-        participant.identity
-      )}"]`
-    );
-
-  if(!tile)return;
-
-  const el =
-    track.attach();
-
-  el.classList.add("video");
-
-  if(track.kind === "audio"){
-
-    el.autoplay = true;
-
-    el.volume =
-      volumes[
-        participant.identity
-      ] ?? 1;
-
-    el.style.display = "none";
-
-    tile.appendChild(el);
-
-    const slider =
-      tile.querySelector(".vol");
-
-    if(slider){
-      slider.value = el.volume;
-    }
-
-  }else{
-
-    tile
-      .querySelector(".video")
-      ?.remove();
-
-    tile.insertBefore(
-      el,
-      tile.firstChild
-    );
-
-  }
-
-  remoteEls.set(
-    participant.identity +
-      ":" +
-      track.sid,
-    el
-  );
-}
-
-function removeParticipantMedia(
-  identity
-){
-
-  for(
-    const [k,el]
-    of remoteEls
-  ){
-
-    if(
-      k.startsWith(
-        identity + ":"
-      )
-    ){
-
-      el.remove();
-      remoteEls.delete(k);
-
-    }
-
-  }
-}
-
-function getPlayer(id){
-  return state?.players.find(
-    p => p.id === id
-  );
-}
-
-function isMine(p){
-  return p.id === myId;
-}
-
-function render(){
-
-  if(!state)return;
-
-  $("roomLabel").textContent =
-    state.room;
-
-  const grid =
-    $("grid");
-
-  grid.innerHTML = "";
-
-  for(
-    const p of state.players
-  ){
-
-    const tile =
-      document.createElement(
-        "div"
-      );
-
-    tile.className =
-      "tile" +
-      (p.dead ? " dead" : "") +
-      (p.nominated
-        ? " nominated"
-        : "");
-
-    tile.dataset.id =
-      p.id;
-
-    tile.innerHTML = `
-
-      <div class="empty">
-        📹
-      </div>
-
-      <div class="namebar">
-
-        <span>
-          ${esc(p.name)}
-        </span>
-
-        ${
-          p.id === state.hostId
-          ? '<span class="host">HOST</span>'
-          : ''
+        if (!name) {
+            return "?";
         }
 
-        <span
-          class="mic ${
-            p.selfMuted ||
-            p.hostMuted
-              ? "off"
-              : ""
-          }"
-        >
-          ${
-            p.selfMuted ||
-            p.hostMuted
-              ? "🔇"
-              : "🎤"
-          }
-        </span>
+        return name.trim().charAt(0).toUpperCase();
 
-      </div>
+    }
 
-      ${
-        p.dead
-        ? '<div class="deadlabel">ВИБУВ</div>'
-        : ""
-      }
 
-      <input
-        class="vol"
-        type="range"
-        min="0"
-        max="1"
-        step=".05"
-        value="${volumes[p.id] ?? 1}"
-        title="Гучність"
-        oninput="setVolume('${p.id}',this.value)"
-      >
+    function showError(message) {
 
-      ${
-        state.hostId === myId
-        ? `
-          <div class="tiletools">
+        errorMessage.textContent = message;
 
-            <button
-              onclick="hostAction('vote','${p.id}')"
-            >
-              🔴
-            </button>
+    }
 
-            <button
-              onclick="hostAction('kill','${p.id}')"
-            >
-              ${p.dead ? "↩" : "☠️"}
-            </button>
+
+    function clearError() {
+
+        errorMessage.textContent = "";
+
+    }
+
+
+    /* =====================================================
+       CREATE PARTICIPANT CARD
+    ===================================================== */
+
+    function createParticipantCard(identity, name, isLocal = false) {
+
+        if (participantCards.has(identity)) {
+
+            return participantCards.get(identity);
+
+        }
+
+        const card = document.createElement("div");
+
+        card.className = "video-card no-video";
+
+        card.dataset.identity = identity;
+
+        card.innerHTML = `
+
+            <div class="avatar">
+                ${escapeHtml(getInitial(name))}
+            </div>
+
+            <video
+                autoplay
+                playsinline
+                muted="${isLocal ? "true" : "false"}"
+            ></video>
+
+            <div class="participant-name">
+                ${escapeHtml(name)}
+            </div>
+
+            <div class="mic-status">
+                🎤
+            </div>
 
             ${
-              p.id !== myId
-              ? `
-                <button
-                  onclick="hostAction('mute','${p.id}')"
-                >
-                  ${p.hostMuted ? "🔊" : "🔇"}
-                </button>
-              `
-              : ""
+                isLocal
+                    ? `<div class="local-badge">Ви</div>`
+                    : ""
             }
 
-          </div>
-        `
-        : ""
-      }
+        `;
 
-    `;
+        videoGrid.appendChild(card);
 
-    grid.appendChild(tile);
-  }
+        participantCards.set(identity, card);
 
-  bindLocalVideo();
+        updateParticipantCount();
 
-  renderHostPanel();
+        return card;
 
-  updateButtons();
-}
-
-function bindLocalVideo(){
-
-  if(!lkRoom)return;
-
-  const p =
-    lkRoom.localParticipant;
-
-  const tile =
-    document.querySelector(
-      `[data-id="${CSS.escape(myId)}"]`
-    );
-
-  if(!tile)return;
-
-  const pub =
-    [...p.videoTrackPublications.values()][0];
-
-  if(pub?.track){
-
-    tile
-      .querySelector(".empty")
-      ?.remove();
-
-    tile
-      .querySelector(".video")
-      ?.remove();
-
-    const el =
-      pub.track.attach();
-
-    el.className =
-      "video";
-
-    tile.insertBefore(
-      el,
-      tile.firstChild
-    );
-  }
-}
-
-function setVolume(id,v){
-
-  volumes[id] =
-    Number(v);
-
-  saveVolumes();
-
-  for(
-    const [k,el]
-    of remoteEls
-  ){
-
-    if(
-      k.startsWith(
-        id + ":"
-      ) &&
-      el.tagName === "AUDIO"
-    ){
-
-      el.volume =
-        Number(v);
     }
 
-  }
-}
 
-function renderHostPanel(){
+    /* =====================================================
+       REMOVE PARTICIPANT CARD
+    ===================================================== */
 
-  const panel =
-    $("hostPanel");
+    function removeParticipantCard(identity) {
 
-  if(state.hostId !== myId){
+        const card = participantCards.get(identity);
 
-    panel.classList.add(
-      "hidden"
-    );
+        if (!card) {
+            return;
+        }
 
-    return;
-  }
+        const video = card.querySelector("video");
 
-  panel.classList.remove(
-    "hidden"
-  );
+        if (video) {
 
-  panel.innerHTML = `
+            try {
+                video.pause();
+            } catch {}
 
-    <small>
-      ПАНЕЛЬ ХОСТА
-    </small>
-
-    <button
-      onclick="hostAction('mute-all','')"
-    >
-      🔇 ${
-        state.players.some(
-          p =>
-            p.id !== myId &&
-            !p.hostMuted
-        )
-        ? "Замутити всіх"
-        : "Увімкнути всім"
-      }
-    </button>
-
-    <button
-      onclick="clearAll()"
-    >
-      ↩ Очистити статуси
-    </button>
-
-    <button
-      onclick="copyInvite()"
-    >
-      🔗 Запросити
-    </button>
-
-  `;
-}
-
-function clearAll(){
-
-  state.players
-    .filter(
-      p =>
-        p.dead ||
-        p.nominated
-    )
-    .forEach(
-      p => {
-
-        if(
-          p.dead ||
-          p.nominated
-        ){
-
-          hostAction(
-            "clear",
-            p.id
-          );
+            video.srcObject = null;
 
         }
 
-      }
+        card.remove();
+
+        participantCards.delete(identity);
+
+        videoElements.delete(identity);
+
+        audioElements.delete(identity);
+
+        updateParticipantCount();
+
+        updateVolumeList();
+
+    }
+
+
+    /* =====================================================
+       VIDEO ATTACH
+    ===================================================== */
+
+    function attachVideoTrack(track, participant) {
+
+        const identity = participant.identity;
+
+        const name =
+            participant.name ||
+            participant.identity;
+
+        const card =
+            createParticipantCard(
+                identity,
+                name,
+                participant.isLocal
+            );
+
+        const video =
+            card.querySelector("video");
+
+        if (!video) {
+            return;
+        }
+
+        try {
+
+            track.detach();
+
+        } catch {}
+
+        track.attach(video);
+
+        video.autoplay = true;
+        video.playsInline = true;
+
+        if (participant.isLocal) {
+            video.muted = true;
+        }
+
+        card.classList.remove("no-video");
+
+        videoElements.set(identity, video);
+
+    }
+
+
+    /* =====================================================
+       VIDEO DETACH
+    ===================================================== */
+
+    function detachVideoTrack(track, participant) {
+
+        const identity = participant.identity;
+
+        try {
+
+            track.detach();
+
+        } catch {}
+
+        const video =
+            videoElements.get(identity);
+
+        if (video) {
+
+            video.srcObject = null;
+
+        }
+
+        videoElements.delete(identity);
+
+        const card =
+            participantCards.get(identity);
+
+        if (card) {
+
+            card.classList.add("no-video");
+
+        }
+
+    }
+
+
+    /* =====================================================
+       AUDIO ATTACH
+    ===================================================== */
+
+    function attachAudioTrack(track, participant) {
+
+        const identity = participant.identity;
+
+        let audio =
+            audioElements.get(identity);
+
+        if (!audio) {
+
+            audio =
+                document.createElement("audio");
+
+            audio.autoplay = true;
+
+            audio.playsInline = true;
+
+            audio.dataset.identity = identity;
+
+            document.body.appendChild(audio);
+
+            audioElements.set(identity, audio);
+
+        }
+
+        try {
+
+            track.detach();
+
+        } catch {}
+
+        track.attach(audio);
+
+        audio.autoplay = true;
+
+        if (!participant.isLocal) {
+
+            audio.muted = false;
+
+            audio.volume = 1;
+
+            audio.play().catch(() => {});
+
+        }
+
+        updateVolumeList();
+
+    }
+
+
+    /* =====================================================
+       AUDIO DETACH
+    ===================================================== */
+
+    function detachAudioTrack(track, participant) {
+
+        try {
+
+            track.detach();
+
+        } catch {}
+
+        const audio =
+            audioElements.get(
+                participant.identity
+            );
+
+        if (audio) {
+
+            audio.pause();
+
+            audio.srcObject = null;
+
+            audio.remove();
+
+        }
+
+        audioElements.delete(
+            participant.identity
+        );
+
+        updateVolumeList();
+
+    }
+
+
+    /* =====================================================
+       UPDATE MIC ICON
+    ===================================================== */
+
+    function updateParticipantMic(participant) {
+
+        const card =
+            participantCards.get(
+                participant.identity
+            );
+
+        if (!card) {
+            return;
+        }
+
+        const micStatus =
+            card.querySelector(".mic-status");
+
+        if (!micStatus) {
+            return;
+        }
+
+        if (participant.isMicrophoneEnabled) {
+
+            micStatus.textContent = "🎤";
+
+            micStatus.style.opacity = "1";
+
+        } else {
+
+            micStatus.textContent = "🔇";
+
+            micStatus.style.opacity = "0.9";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       UPDATE LOCAL BUTTONS
+    ===================================================== */
+
+    function updateControls() {
+
+        if (!room) {
+            return;
+        }
+
+        const local =
+            room.localParticipant;
+
+        const cameraOn =
+            local.isCameraEnabled;
+
+        const micOn =
+            local.isMicrophoneEnabled;
+
+        cameraButton.classList.toggle(
+            "active",
+            cameraOn
+        );
+
+        cameraButton.classList.toggle(
+            "off",
+            !cameraOn
+        );
+
+        cameraButton.textContent =
+            cameraOn ? "📹" : "📷";
+
+        micButton.classList.toggle(
+            "active",
+            micOn
+        );
+
+        micButton.classList.toggle(
+            "off",
+            !micOn
+        );
+
+        micButton.textContent =
+            micOn ? "🎤" : "🔇";
+
+        updateParticipantMic(local);
+
+    }
+
+
+    /* =====================================================
+       UPDATE PARTICIPANT COUNT
+    ===================================================== */
+
+    function updateParticipantCount() {
+
+        const count =
+            participantCards.size;
+
+        participantsCount.textContent =
+            `${count} / 12`;
+
+    }
+
+
+    /* =====================================================
+       VOLUME LIST
+    ===================================================== */
+
+    function updateVolumeList() {
+
+        volumeList.innerHTML = "";
+
+        audioElements.forEach(
+            (audio, identity) => {
+
+                let name = identity;
+
+                const participant =
+                    room?.getParticipantByIdentity(
+                        identity
+                    );
+
+                if (participant) {
+
+                    name =
+                        participant.name ||
+                        participant.identity;
+
+                }
+
+                const row =
+                    document.createElement("div");
+
+                row.className =
+                    "volume-row";
+
+                const currentVolume =
+                    Math.round(audio.volume * 100);
+
+                row.innerHTML = `
+
+                    <div class="volume-name">
+
+                        <span>
+                            ${escapeHtml(name)}
+                        </span>
+
+                        <span>
+                            ${currentVolume}%
+                        </span>
+
+                    </div>
+
+                    <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="${currentVolume}"
+                    >
+
+                `;
+
+                const slider =
+                    row.querySelector(
+                        'input[type="range"]'
+                    );
+
+                slider.addEventListener(
+                    "input",
+                    () => {
+
+                        const value =
+                            Number(slider.value);
+
+                        audio.volume =
+                            value / 100;
+
+                        row.querySelector(
+                            ".volume-name span:last-child"
+                        ).textContent =
+                            `${value}%`;
+
+                    }
+                );
+
+                volumeList.appendChild(row);
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       ADD EXISTING PARTICIPANTS
+    ===================================================== */
+
+    function renderExistingParticipants() {
+
+        if (!room) {
+            return;
+        }
+
+        const local =
+            room.localParticipant;
+
+        createParticipantCard(
+            local.identity,
+            local.name || local.identity,
+            true
+        );
+
+        updateParticipantMic(local);
+
+        room.remoteParticipants.forEach(
+            participant => {
+
+                createParticipantCard(
+                    participant.identity,
+                    participant.name ||
+                    participant.identity,
+                    false
+                );
+
+                updateParticipantMic(
+                    participant
+                );
+
+                participant.trackPublications
+                    .forEach(publication => {
+
+                        if (
+                            publication.isSubscribed &&
+                            publication.track
+                        ) {
+
+                            if (
+                                publication.kind ===
+                                LivekitClient.Track.Kind.Video
+                            ) {
+
+                                attachVideoTrack(
+                                    publication.track,
+                                    participant
+                                );
+
+                            }
+
+                            if (
+                                publication.kind ===
+                                LivekitClient.Track.Kind.Audio
+                            ) {
+
+                                attachAudioTrack(
+                                    publication.track,
+                                    participant
+                                );
+
+                            }
+
+                        }
+
+                    });
+
+            }
+        );
+
+        updateParticipantCount();
+
+    }
+
+
+    /* =====================================================
+       ROOM EVENTS
+    ===================================================== */
+
+    function setupRoomEvents() {
+
+        room.on(
+            LivekitClient.RoomEvent.ParticipantConnected,
+            participant => {
+
+                createParticipantCard(
+                    participant.identity,
+                    participant.name ||
+                    participant.identity,
+                    false
+                );
+
+                updateParticipantMic(
+                    participant
+                );
+
+                updateParticipantCount();
+
+                updateVolumeList();
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.ParticipantDisconnected,
+            participant => {
+
+                removeParticipantCard(
+                    participant.identity
+                );
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.TrackSubscribed,
+            (track, publication, participant) => {
+
+                if (
+                    track.kind ===
+                    LivekitClient.Track.Kind.Video
+                ) {
+
+                    attachVideoTrack(
+                        track,
+                        participant
+                    );
+
+                }
+
+                if (
+                    track.kind ===
+                    LivekitClient.Track.Kind.Audio
+                ) {
+
+                    attachAudioTrack(
+                        track,
+                        participant
+                    );
+
+                }
+
+                updateParticipantMic(
+                    participant
+                );
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.TrackUnsubscribed,
+            (track, publication, participant) => {
+
+                if (
+                    track.kind ===
+                    LivekitClient.Track.Kind.Video
+                ) {
+
+                    detachVideoTrack(
+                        track,
+                        participant
+                    );
+
+                }
+
+                if (
+                    track.kind ===
+                    LivekitClient.Track.Kind.Audio
+                ) {
+
+                    detachAudioTrack(
+                        track,
+                        participant
+                    );
+
+                }
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.LocalTrackPublished,
+            publication => {
+
+                if (
+                    publication.track
+                ) {
+
+                    if (
+                        publication.kind ===
+                        LivekitClient.Track.Kind.Video
+                    ) {
+
+                        attachVideoTrack(
+                            publication.track,
+                            room.localParticipant
+                        );
+
+                    }
+
+                }
+
+                updateControls();
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.LocalTrackUnpublished,
+            publication => {
+
+                if (
+                    publication.track
+                ) {
+
+                    try {
+
+                        publication.track.detach();
+
+                    } catch {}
+
+                }
+
+                updateControls();
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.TrackMuted,
+            (publication, participant) => {
+
+                updateParticipantMic(
+                    participant
+                );
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.TrackUnmuted,
+            (publication, participant) => {
+
+                updateParticipantMic(
+                    participant
+                );
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.ActiveSpeakersChanged,
+            speakers => {
+
+                participantCards.forEach(
+                    (card, identity) => {
+
+                        const active =
+                            speakers.some(
+                                participant =>
+                                    participant.identity ===
+                                    identity
+                            );
+
+                        if (active) {
+
+                            card.style.border =
+                                "2px solid #22c55e";
+
+                        } else {
+
+                            card.style.border =
+                                "1px solid #374151";
+
+                        }
+
+                    }
+                );
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.Disconnected,
+            () => {
+
+                if (!leaving) {
+
+                    connectionStatus.textContent =
+                        "Відключено";
+
+                }
+
+            }
+        );
+
+
+        room.on(
+            LivekitClient.RoomEvent.MediaDevicesError,
+            error => {
+
+                console.error(
+                    "Media device error:",
+                    error
+                );
+
+                showError(
+                    "Не вдалося отримати доступ до камери або мікрофона."
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       CONNECT
+    ===================================================== */
+
+    async function connectToRoom() {
+
+        roomName =
+            roomInput.value.trim();
+
+        participantName =
+            nameInput.value.trim();
+
+        clearError();
+
+        if (!roomName) {
+
+            showError(
+                "Введи назву кімнати."
+            );
+
+            return;
+
+        }
+
+        if (!participantName) {
+
+            showError(
+                "Введи своє ім'я."
+            );
+
+            return;
+
+        }
+
+        joinButton.disabled = true;
+
+        joinButton.textContent =
+            "Підключення...";
+
+        try {
+
+            const response =
+                await fetch(
+                    "/api/livekit-token",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            roomName,
+                            participantName
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "Не вдалося отримати токен."
+                );
+
+            }
+
+
+            /* =========================
+               CREATE ROOM
+            ========================= */
+
+            room =
+                new LivekitClient.Room({
+
+                    adaptiveStream: true,
+
+                    dynacast: true,
+
+                    disconnectOnPageLeave: false,
+
+                    videoCaptureDefaults: {
+
+                        resolution:
+                            LivekitClient.VideoPresets
+                                .h720
+                                .resolution
+
+                    }
+
+                });
+
+
+            setupRoomEvents();
+
+
+            /* =========================
+               CONNECT
+            ========================= */
+
+            connectionStatus.textContent =
+                "Підключення...";
+
+            await room.connect(
+                data.url,
+                data.token,
+                {
+                    autoSubscribe: true
+                }
+            );
+
+
+            /* =========================
+               UI
+            ========================= */
+
+            loginScreen.style.display =
+                "none";
+
+            app.style.display =
+                "flex";
+
+            roomNameDisplay.textContent =
+                `Кімната: ${roomName}`;
+
+            connectionStatus.textContent =
+                "Підключено";
+
+            createParticipantCard(
+                room.localParticipant.identity,
+                room.localParticipant.name ||
+                participantName,
+                true
+            );
+
+
+            /* =========================
+               CAMERA + MICROPHONE
+            ========================= */
+
+            try {
+
+                await room.localParticipant
+                    .enableCameraAndMicrophone();
+
+            } catch (mediaError) {
+
+                console.error(
+                    "Camera/microphone error:",
+                    mediaError
+                );
+
+                /*
+                    Якщо браузер не дав доступ,
+                    кімната все одно відкриється.
+                */
+
+                showError(
+                    "Кімната відкрита, але немає доступу до камери/мікрофона."
+                );
+
+            }
+
+
+            renderExistingParticipants();
+
+            updateControls();
+
+            updateVolumeList();
+
+            updateParticipantCount();
+
+
+            /* =========================
+               WEBSOCKET
+            ========================= */
+
+            connectWebSocket();
+
+        } catch (error) {
+
+            console.error(
+                "Connection error:",
+                error
+            );
+
+            showError(
+                error.message ||
+                "Не вдалося підключитися."
+            );
+
+            joinButton.disabled =
+                false;
+
+            joinButton.textContent =
+                "Увійти в кімнату";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       WEBSOCKET
+    ===================================================== */
+
+    function connectWebSocket() {
+
+        try {
+
+            const protocol =
+                location.protocol === "https:"
+                    ? "wss:"
+                    : "ws:";
+
+            ws =
+                new WebSocket(
+                    `${protocol}//${location.host}/ws`
+                );
+
+            ws.addEventListener(
+                "open",
+                () => {
+
+                    ws.send(
+                        JSON.stringify({
+                            type: "join",
+                            roomName,
+                            playerName:
+                                participantName
+                        })
+                    );
+
+                }
+            );
+
+            ws.addEventListener(
+                "message",
+                event => {
+
+                    try {
+
+                        const message =
+                            JSON.parse(
+                                event.data
+                            );
+
+                        console.log(
+                            "WebSocket:",
+                            message
+                        );
+
+                    } catch {}
+
+                }
+            );
+
+        } catch (error) {
+
+            console.error(
+                "WebSocket error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       CAMERA BUTTON
+    ===================================================== */
+
+    cameraButton.addEventListener(
+        "click",
+        async () => {
+
+            if (!room) {
+                return;
+            }
+
+            try {
+
+                await room.localParticipant
+                    .setCameraEnabled(
+                        !room.localParticipant
+                            .isCameraEnabled
+                    );
+
+                updateControls();
+
+            } catch (error) {
+
+                console.error(
+                    "Camera error:",
+                    error
+                );
+
+            }
+
+        }
     );
-}
 
-function hostAction(
-  action,
-  target
-){
 
-  ws?.send(
-    JSON.stringify({
-      type:"host-action",
-      action,
-      target
-    })
-  );
+    /* =====================================================
+       MICROPHONE BUTTON
+    ===================================================== */
 
-}
+    micButton.addEventListener(
+        "click",
+        async () => {
 
-async function toggleMic(){
+            if (!room) {
+                return;
+            }
 
-  const me =
-    getPlayer(myId);
+            try {
 
-  if(me?.hostMuted){
+                await room.localParticipant
+                    .setMicrophoneEnabled(
+                        !room.localParticipant
+                            .isMicrophoneEnabled
+                    );
 
-    alert(
-      "Хост вимкнув тобі мікрофон."
+                updateControls();
+
+            } catch (error) {
+
+                console.error(
+                    "Microphone error:",
+                    error
+                );
+
+            }
+
+        }
     );
 
-    return;
-  }
 
-  if(!lkRoom)return;
+    /* =====================================================
+       VOLUME BUTTON
+    ===================================================== */
 
-  const enabled =
-    lkRoom
-      .localParticipant
-      .isMicrophoneEnabled;
+    volumeButton.addEventListener(
+        "click",
+        () => {
 
-  await lkRoom
-    .localParticipant
-    .setMicrophoneEnabled(
-      !enabled
+            const isVisible =
+                volumePanel.style.display ===
+                "block";
+
+            volumePanel.style.display =
+                isVisible
+                    ? "none"
+                    : "block";
+
+            if (!isVisible) {
+
+                updateVolumeList();
+
+            }
+
+        }
     );
 
-  ws?.send(
-    JSON.stringify({
-      type:"media-state",
-      selfMuted:enabled
-    })
-  );
 
-  render();
-}
+    /* =====================================================
+       LEAVE ROOM
+    ===================================================== */
 
-async function toggleCam(){
-
-  if(!lkRoom)return;
-
-  await lkRoom
-    .localParticipant
-    .setCameraEnabled(
-      !lkRoom
-        .localParticipant
-        .isCameraEnabled
+    leaveButton.addEventListener(
+        "click",
+        leaveRoom
     );
 
-  render();
-}
 
-function updateButtons(){
+    async function leaveRoom() {
 
-  if(!lkRoom)return;
+        if (leaving) {
+            return;
+        }
 
-  $("micBtn").textContent =
-    lkRoom
-      .localParticipant
-      .isMicrophoneEnabled
-      ? "🎤"
-      : "🔇";
+        leaving = true;
 
-  $("micBtn").classList.toggle(
-    "off",
-    !lkRoom
-      .localParticipant
-      .isMicrophoneEnabled
-  );
+        leaveButton.disabled =
+            true;
 
-  $("camBtn").textContent =
-    lkRoom
-      .localParticipant
-      .isCameraEnabled
-      ? "📷"
-      : "🚫";
+        try {
 
-  $("camBtn").classList.toggle(
-    "off",
-    !lkRoom
-      .localParticipant
-      .isCameraEnabled
-  );
-}
+            /* =========================
+               CLOSE WEBSOCKET
+            ========================= */
 
-function renameMe(){
+            if (ws) {
 
-  const n =
-    prompt(
-      "Новий нік:",
-      localName || "Гравець"
+                try {
+                    ws.close();
+                } catch {}
+
+                ws = null;
+
+            }
+
+
+            /* =========================
+               DISCONNECT LIVEKIT
+               stopTracks = true
+            ========================= */
+
+            if (room) {
+
+                try {
+
+                    await room.disconnect(
+                        true
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "LiveKit disconnect error:",
+                        error
+                    );
+
+                }
+
+            }
+
+
+            /* =========================
+               REMOVE ALL MEDIA
+            ========================= */
+
+            document
+                .querySelectorAll(
+                    "video, audio"
+                )
+                .forEach(element => {
+
+                    try {
+                        element.pause();
+                    } catch {}
+
+                    try {
+                        element.srcObject = null;
+                    } catch {}
+
+                    element.remove();
+
+                });
+
+
+            /* =========================
+               RESET
+            ========================= */
+
+            room = null;
+
+            videoElements.clear();
+
+            audioElements.clear();
+
+            participantCards.clear();
+
+            videoGrid.innerHTML = "";
+
+            volumeList.innerHTML = "";
+
+            volumePanel.style.display =
+                "none";
+
+            connectionStatus.textContent =
+                "Підключення...";
+
+            participantsCount.textContent =
+                "0 / 12";
+
+            app.style.display =
+                "none";
+
+            loginScreen.style.display =
+                "flex";
+
+            joinButton.disabled =
+                false;
+
+            joinButton.textContent =
+                "Увійти в кімнату";
+
+            clearError();
+
+        } finally {
+
+            leaving = false;
+
+            leaveButton.disabled =
+                false;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       ENTER KEY
+    ===================================================== */
+
+    roomInput.addEventListener(
+        "keydown",
+        event => {
+
+            if (event.key === "Enter") {
+
+                nameInput.focus();
+
+            }
+
+        }
     );
 
-  if(!n)return;
 
-  localName =
-    n.trim().slice(0,20) ||
-    localName;
+    nameInput.addEventListener(
+        "keydown",
+        event => {
 
-  localStorage.setItem(
-    "mafiaName",
-    localName
-  );
+            if (event.key === "Enter") {
 
-  ws?.send(
-    JSON.stringify({
-      type:"rename",
-      name:localName
-    })
-  );
-}
+                connectToRoom();
 
-function copyInvite(){
+            }
 
-  if(!roomCode)return;
-
-  const url =
-    location.origin +
-    location.pathname +
-    "?room=" +
-    encodeURIComponent(
-      roomCode
+        }
     );
 
-  navigator
-    .clipboard
-    ?.writeText(url);
 
-  alert(
-    "Посилання скопійовано."
-  );
-}
+    joinButton.addEventListener(
+        "click",
+        connectToRoom
+    );
 
-async function leaveRoom(){
 
-  try{
-    await lkRoom?.disconnect();
-  }catch{}
+    /* =====================================================
+       PAGE CLOSE
+    ===================================================== */
 
-  try{
-    ws?.close();
-  }catch{}
+    window.addEventListener(
+        "beforeunload",
+        () => {
 
-  location.href =
-    location.pathname;
-}
+            if (ws) {
 
-window.addEventListener(
-  "beforeunload",
-  () => {
-    try{
-      lkRoom?.disconnect();
-    }catch{}
-  }
-);
+                try {
+                    ws.close();
+                } catch {}
+
+            }
+
+            if (room) {
+
+                try {
+
+                    room.disconnect(
+                        true
+                    );
+
+                } catch {}
+
+            }
+
+        }
+    );
 
 </script>
 
