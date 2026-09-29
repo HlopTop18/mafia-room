@@ -2,84 +2,134 @@ import express from "express";
 import { createServer } from "http";
 import { WebSocketServer } from "ws";
 import crypto from "crypto";
+import { AccessToken } from "livekit-server-sdk";
 
 const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
 const rooms = new Map();
-const RECONNECT_TTL = 15 * 60 * 1000;
+const TTL = 15 * 60 * 1000;
+const MAX = 12;
 
+app.use(express.json());
 app.use(express.static("public"));
 
-app.get("/{*splat}", (req, res) => {
-  res.sendFile(process.cwd() + "/public/index.html");
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    livekitConfigured: !!(
+      process.env.LIVEKIT_URL &&
+      process.env.LIVEKIT_API_KEY &&
+      process.env.LIVEKIT_API_SECRET
+    )
+  });
 });
 
-function id() {
-  return crypto.randomBytes(5).toString("hex").toUpperCase();
-}
+app.post("/api/livekit-token", async (req, res) => {
+  try {
+    const { roomName, identity, name } = req.body || {};
 
-function send(ws, msg) {
-  if (ws?.readyState === 1) {
-    ws.send(JSON.stringify(msg));
-  }
-}
-
-function broadcast(room, msg, exceptId = null) {
-  for (const p of room.players.values()) {
-    if (p.ws && p.id !== exceptId) {
-      send(p.ws, msg);
+    if (
+      !process.env.LIVEKIT_URL ||
+      !process.env.LIVEKIT_API_KEY ||
+      !process.env.LIVEKIT_API_SECRET
+    ) {
+      return res
+        .status(500)
+        .json({ error: "LiveKit is not configured on the server." });
     }
-  }
-}
 
-function snapshot(room) {
-  return [...room.players.values()].map(p => ({
+    const room = String(roomName || "")
+      .trim()
+      .toUpperCase()
+      .slice(0, 32);
+
+    const id = String(identity || "")
+      .trim()
+      .slice(0, 64);
+
+    const displayName = String(name || "Гравець")
+      .trim()
+      .slice(0, 40);
+
+    if (!room || !id) {
+      return res
+        .status(400)
+        .json({ error: "roomName and identity are required." });
+    }
+
+    const token = new AccessToken(
+      process.env.LIVEKIT_API_KEY,
+      process.env.LIVEKIT_API_SECRET,
+      {
+        identity: id,
+        name: displayName,
+        ttl: "6h"
+      }
+    );
+
+    token.addGrant({
+      roomJoin: true,
+      room,
+      canPublish: true,
+      canSubscribe: true,
+      canPublishData: true
+    });
+
+    res.json({
+      serverUrl: process.env.LIVEKIT_URL,
+      participantToken: await token.toJwt()
+    });
+  } catch (e) {
+    console.error(e);
+    res
+      .status(500)
+      .json({ error: "Could not create LiveKit token." });
+  }
+});
+
+const makeId = () =>
+  crypto.randomBytes(5).toString("hex").toUpperCase();
+
+const send = (ws, msg) =>
+  ws?.readyState === 1 &&
+  ws.send(JSON.stringify(msg));
+
+const snapshot = (r) => ({
+  type: "room-state",
+  room: r.code,
+  hostId: r.hostId,
+  players: [...r.players.values()].map((p) => ({
     id: p.id,
     name: p.name,
-    dead: !!p.dead,
-    nominated: !!p.nominated,
-    muted: !!p.muted,
+    dead: p.dead,
+    nominated: p.nominated,
+    selfMuted: p.selfMuted,
+    hostMuted: p.hostMuted,
     connected: !!p.ws
-  }));
-}
+  }))
+});
 
-function roomState(room) {
-  return {
-    type: "room-state",
-    room: room.code,
-    hostId: room.hostId,
-    players: snapshot(room)
-  };
-}
+const broadcast = (r, msg) =>
+  r.players.forEach(
+    (p) => p.ws && send(p.ws, msg)
+  );
 
-function getOrCreate(code) {
-  let room = rooms.get(code);
-
-  if (!room) {
-    room = {
+function getRoom(code) {
+  if (!rooms.has(code)) {
+    rooms.set(code, {
       code,
       hostId: null,
       players: new Map()
-    };
-
-    rooms.set(code, room);
+    });
   }
 
-  return room;
+  return rooms.get(code);
 }
 
-function cleanupRoom(room) {
-  if (!room.players.size) {
-    rooms.delete(room.code);
-  }
-}
-
-wss.on("connection", ws => {
-
-  ws.on("message", raw => {
-
+wss.on("connection", (ws) => {
+  ws.on("message", (raw) => {
     let m;
 
     try {
@@ -89,7 +139,6 @@ wss.on("connection", ws => {
     }
 
     if (m.type === "join") {
-
       const code = String(m.room || "")
         .toUpperCase()
         .slice(0, 12);
@@ -101,101 +150,105 @@ wss.on("connection", ws => {
         });
       }
 
-      const room = getOrCreate(code);
+      const r = getRoom(code);
 
       const requestedId = String(m.playerId || "");
 
-      let player = requestedId
-        ? room.players.get(requestedId)
-        : null;
+      let p =
+        requestedId &&
+        r.players.get(requestedId);
 
-      if (player) {
-
-        if (player.ws && player.ws !== ws) {
-          player.ws.close();
+      if (p) {
+        if (p.ws && p.ws !== ws) {
+          p.ws.close();
         }
 
-        player.ws = ws;
-        player.lastSeen = Date.now();
+        p.ws = ws;
+        p.lastSeen = Date.now();
 
-        player.name = String(
-          m.name || player.name || "Гравець"
+        p.name = String(
+          m.name || p.name || "Гравець"
         ).slice(0, 20);
-
       } else {
-
-        const connected = [
-          ...room.players.values()
-        ].filter(p => p.ws).length;
-
-        if (connected >= 12) {
-
+        if (
+          [...r.players.values()].filter(
+            (x) => x.ws
+          ).length >= MAX
+        ) {
           return send(ws, {
             type: "error",
-            message: "У лобі вже 12 учасників."
+            message:
+              "У кімнаті вже 12 активних гравців."
           });
-
         }
 
-        player = {
-          id: id(),
+        p = {
+          id: makeId(),
           name: String(
             m.name || "Гравець"
           ).slice(0, 20),
           ws,
           dead: false,
           nominated: false,
-          muted: false,
+          selfMuted: false,
+          hostMuted: false,
           lastSeen: Date.now()
         };
 
-        room.players.set(player.id, player);
+        r.players.set(p.id, p);
 
-        if (!room.hostId) {
-          room.hostId = player.id;
+        if (!r.hostId) {
+          r.hostId = p.id;
         }
       }
 
-      ws.playerId = player.id;
-      ws.roomId = room.code;
+      ws.playerId = p.id;
+      ws.roomId = code;
 
       send(ws, {
         type: "joined",
-        id: player.id,
-        room: room.code,
-        hostId: room.hostId
+        id: p.id,
+        room: code,
+        hostId: r.hostId
       });
 
-      broadcast(room, roomState(room));
+      broadcast(r, snapshot(r));
 
       return;
     }
 
-    const room = rooms.get(ws.roomId);
-    const player = room?.players.get(ws.playerId);
+    const r = rooms.get(ws.roomId);
+    const p = r?.players.get(ws.playerId);
 
-    if (!room || !player) return;
+    if (!r || !p) return;
 
     if (m.type === "rename") {
-
-      player.name = String(
-        m.name || player.name
+      p.name = String(
+        m.name || p.name
       ).slice(0, 20);
 
-      broadcast(room, roomState(room));
+      broadcast(r, snapshot(r));
+    }
 
+    else if (m.type === "media-state") {
+      if (typeof m.selfMuted === "boolean") {
+        p.selfMuted = m.selfMuted;
+      }
+
+      broadcast(r, snapshot(r));
     }
 
     else if (m.type === "host-action") {
+      if (r.hostId !== p.id) return;
 
-      if (room.hostId !== player.id) return;
-
-      const target = room.players.get(
-        String(m.target || "")
-      );
+      const target =
+        r.players.get(
+          String(m.target || "")
+        );
 
       if (m.action === "vote" && target) {
-        target.nominated = !target.nominated;
+        target.nominated =
+          !target.nominated;
       }
 
       if (m.action === "kill" && target) {
@@ -208,198 +261,147 @@ wss.on("connection", ws => {
         target.nominated = false;
       }
 
-      if (m.action === "mute" && target) {
-
-        if (target.id !== room.hostId) {
-          target.muted = !target.muted;
-        }
-
+      if (
+        m.action === "mute" &&
+        target &&
+        target.id !== r.hostId
+      ) {
+        target.hostMuted =
+          !target.hostMuted;
       }
 
       if (m.action === "mute-all") {
-
-        const shouldMute = [
-          ...room.players.values()
-        ].some(
-          p => p.id !== room.hostId && !p.muted
+        const list = [
+          ...r.players.values()
+        ].filter(
+          (x) => x.id !== r.hostId
         );
 
-        for (const p of room.players.values()) {
+        const mute = list.some(
+          (x) => !x.hostMuted
+        );
 
-          if (p.id !== room.hostId) {
-            p.muted = shouldMute;
-          }
-
-        }
+        list.forEach(
+          (x) => (x.hostMuted = mute)
+        );
       }
-
-      if (m.action === "transfer-host" && target) {
-        room.hostId = target.id;
-      }
-
-      broadcast(room, roomState(room));
 
       if (
-        m.action === "mute" ||
-        m.action === "mute-all"
+        m.action === "transfer-host" &&
+        target
       ) {
-
-        for (const p of room.players.values()) {
-
-          if (p.ws) {
-
-            send(p.ws, {
-              type: "force-mute",
-              muted: !!p.muted
-            });
-
-          }
-
-        }
+        r.hostId = target.id;
+        target.hostMuted = false;
       }
+
+      broadcast(r, snapshot(r));
     }
 
-    else if (m.type === "order") {
+    else if (
+      m.type === "order" &&
+      r.hostId === p.id &&
+      Array.isArray(m.ids)
+    ) {
+      const ids = m.ids
+        .map(String)
+        .filter((x) => r.players.has(x));
 
-      if (room.hostId !== player.id) return;
+      const index = (id) => {
+        const i = ids.indexOf(id);
+        return i < 0 ? 999 : i;
+      };
 
-      const ids = Array.isArray(m.ids)
-        ? m.ids
-            .map(String)
-            .filter(x => room.players.has(x))
-            .slice(0, 12)
-        : [];
-
-      const map = new Map(
-        ids.map((x, i) => [x, i])
+      r.players = new Map(
+        [...r.players.values()]
+          .sort(
+            (a, b) =>
+              index(a.id) - index(b.id)
+          )
+          .map((x) => [x.id, x])
       );
 
-      const ordered = [
-        ...room.players.values()
-      ].sort(
-        (a, b) =>
-          (map.get(a.id) ?? 999) -
-          (map.get(b.id) ?? 999)
-      );
-
-      room.players = new Map(
-        ordered.map(p => [p.id, p])
-      );
-
-      broadcast(room, roomState(room));
-    }
-
-    else if (m.type === "signal") {
-
-      const target = room.players.get(
-        String(m.to || "")
-      );
-
-      if (target?.ws) {
-
-        send(target.ws, {
-          type: "signal",
-          from: player.id,
-          data: m.data
-        });
-
-      }
+      broadcast(r, snapshot(r));
     }
 
     else if (m.type === "ping") {
-
-      player.lastSeen = Date.now();
+      p.lastSeen = Date.now();
 
       send(ws, {
         type: "pong"
       });
-
     }
-
   });
 
   ws.on("close", () => {
+    const r = rooms.get(ws.roomId);
+    const p = r?.players.get(ws.playerId);
 
-    const room = rooms.get(ws.roomId);
-
-    const p = room?.players.get(ws.playerId);
-
-    if (!room || !p || p.ws !== ws) return;
+    if (!r || !p || p.ws !== ws) return;
 
     p.ws = null;
     p.lastSeen = Date.now();
 
-    broadcast(room, roomState(room));
+    broadcast(r, snapshot(r));
 
     setTimeout(() => {
-
-      const current = room.players.get(p.id);
+      const x = r.players.get(p.id);
 
       if (
-        current &&
-        !current.ws &&
-        Date.now() - current.lastSeen >= RECONNECT_TTL
+        x &&
+        !x.ws &&
+        Date.now() - x.lastSeen >= TTL
       ) {
+        r.players.delete(p.id);
 
-        room.players.delete(p.id);
-
-        if (room.hostId === p.id) {
-
-          room.hostId =
-            [...room.players.values()][0]?.id || null;
-
+        if (r.hostId === p.id) {
+          r.hostId =
+            [...r.players.values()][0]?.id ||
+            null;
         }
 
-        broadcast(room, roomState(room));
+        broadcast(r, snapshot(r));
 
-        cleanupRoom(room);
+        if (!r.players.size) {
+          rooms.delete(r.code);
+        }
       }
-
-    }, RECONNECT_TTL + 1000);
-
+    }, TTL + 1000);
   });
-
 });
 
 setInterval(() => {
-
   const now = Date.now();
 
-  for (const room of rooms.values()) {
-
-    for (const p of room.players.values()) {
-
+  for (const r of rooms.values()) {
+    for (const p of r.players.values()) {
       if (
         !p.ws &&
-        now - p.lastSeen > RECONNECT_TTL
+        now - p.lastSeen > TTL
       ) {
-
-        room.players.delete(p.id);
-
+        r.players.delete(p.id);
       }
-
     }
 
     if (
-      room.hostId &&
-      !room.players.has(room.hostId)
+      r.hostId &&
+      !r.players.has(r.hostId)
     ) {
-
-      room.hostId =
-        [...room.players.values()][0]?.id || null;
-
+      r.hostId =
+        [...r.players.values()][0]?.id ||
+        null;
     }
 
-    cleanupRoom(room);
-
+    if (!r.players.size) {
+      rooms.delete(r.code);
+    }
   }
+}, 60000);
 
-}, 60_000);
-
-const PORT = process.env.PORT || 3000;
-
-server.listen(PORT, () => {
-  console.log(
-    `Mafia Room running on port ${PORT}`
-  );
-});
+server.listen(
+  process.env.PORT || 3000,
+  () => {
+    console.log(
+      "Mafia Room 3.0 + LiveKit running"
+    );
+  }
+);
