@@ -381,6 +381,196 @@
                 font-size: 13px;
             }
         }
+
+        /* =========================
+           MAFIA HOST CONTROLS
+        ========================= */
+
+        .host-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 5px 8px;
+            border-radius: 7px;
+            background: rgba(245, 158, 11, 0.95);
+            color: #111827;
+            font-size: 11px;
+            font-weight: bold;
+            z-index: 8;
+        }
+
+        .video-card.game-highlight {
+            border: 3px solid #ef4444 !important;
+            box-shadow: 0 0 18px rgba(239, 68, 68, 0.45);
+        }
+
+        .video-card.dragging {
+            opacity: 0.45;
+        }
+
+        .video-card.drag-over {
+            outline: 3px dashed #60a5fa;
+            outline-offset: -3px;
+        }
+
+        .dead-overlay {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.78);
+            color: #ef4444;
+            font-size: clamp(30px, 6vw, 70px);
+            font-weight: 900;
+            letter-spacing: 4px;
+            text-shadow: 0 4px 15px rgba(0,0,0,.8);
+        }
+
+        .video-card.dead .dead-overlay {
+            display: flex;
+        }
+
+        .video-card.dead video {
+            filter: grayscale(1) brightness(0.35);
+        }
+
+        .host-panel-button {
+            display: none;
+        }
+
+        .host-menu {
+            position: fixed;
+            z-index: 1000;
+            width: 230px;
+            display: none;
+            padding: 7px;
+            border-radius: 12px;
+            background: #1f2937;
+            border: 1px solid #4b5563;
+            box-shadow: 0 18px 50px rgba(0,0,0,.55);
+        }
+
+        .host-menu-title {
+            padding: 8px 10px;
+            font-weight: bold;
+            border-bottom: 1px solid #374151;
+            margin-bottom: 6px;
+        }
+
+        .host-menu button {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            color: white;
+            text-align: left;
+            padding: 9px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .host-menu button:hover {
+            background: #374151;
+        }
+
+        .host-menu button.danger:hover {
+            background: #7f1d1d;
+        }
+
+        #hostPanelButton {
+            display: none;
+            width: auto;
+            padding: 0 15px;
+            border-radius: 24px;
+            font-size: 14px;
+            background: #92400e;
+        }
+
+        #hostPanelButton:hover {
+            background: #b45309;
+        }
+
+        .host-panel {
+            position: fixed;
+            z-index: 900;
+            top: 75px;
+            left: 15px;
+            width: 280px;
+            max-height: calc(100vh - 100px);
+            overflow-y: auto;
+            display: none;
+            padding: 14px;
+            border-radius: 14px;
+            background: #1f2937;
+            border: 1px solid #374151;
+            box-shadow: 0 15px 40px rgba(0,0,0,.45);
+        }
+
+        .host-panel h3 {
+            margin: 0 0 10px;
+            font-size: 15px;
+        }
+
+        .host-panel p {
+            margin: 0 0 12px;
+            color: #9ca3af;
+            font-size: 12px;
+        }
+
+        .host-player-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #374151;
+        }
+
+        .host-player-row:last-child {
+            border-bottom: 0;
+        }
+
+        .host-player-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+        }
+
+        .host-player-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .host-player-actions button {
+            border: 0;
+            border-radius: 7px;
+            background: #374151;
+            color: white;
+            cursor: pointer;
+            padding: 6px 7px;
+            font-size: 12px;
+        }
+
+        .host-player-actions button:hover {
+            background: #4b5563;
+        }
+
+        @media (max-width: 600px) {
+            .host-panel {
+                left: 7px;
+                right: 7px;
+                width: auto;
+            }
+
+            .host-menu {
+                width: min(235px, calc(100vw - 20px));
+            }
+        }
+
     </style>
 </head>
 
@@ -400,6 +590,7 @@
 
         <div class="field">
             <label for="roomInput">Назва кімнати</label>
+
             <input
                 id="roomInput"
                 type="text"
@@ -410,6 +601,7 @@
 
         <div class="field">
             <label for="nameInput">Твоє ім'я</label>
+
             <input
                 id="nameInput"
                 type="text"
@@ -443,13 +635,19 @@
                 Кімната
             </strong>
 
-            <span class="room-status" id="connectionStatus">
+            <span
+                class="room-status"
+                id="connectionStatus"
+            >
                 Підключення...
             </span>
 
         </div>
 
-        <div class="participants-count" id="participantsCount">
+        <div
+            class="participants-count"
+            id="participantsCount"
+        >
             0 / 12
         </div>
 
@@ -486,6 +684,14 @@
         </button>
 
         <button
+            id="hostPanelButton"
+            class="control-button"
+            title="Керування ведучого"
+        >
+            👑 Ведучий
+        </button>
+
+        <button
             id="leaveButton"
             class="control-button"
             title="Вийти"
@@ -509,8 +715,110 @@
     <div id="volumeList"></div>
 
 </div>
+<!-- HOST PANEL -->
+<div id="hostPanel" class="host-panel">
+    <h3>👑 Керування ведучого</h3>
+    <p>Тут можна керувати учасниками гри.</p>
 
+    <div id="hostPlayersList"></div>
+</div>
 
+<!-- HOST CONTEXT MENU -->
+<div id="hostMenu" class="host-menu">
+
+    <div id="hostMenuTitle" class="host-menu-title">
+        Учасник
+    </div>
+
+    <button id="hostKillButton">
+        ☠️ Вбити
+    </button>
+
+    <button id="hostReviveButton">
+        ↩️ Воскресити
+    </button>
+
+    <button id="hostMuteButton">
+        🔇 Вимкнути мікрофон
+    </button>
+
+    <button id="hostUnmuteButton">
+        🎤 Дозволити мікрофон
+    </button>
+
+    <button id="hostHighlightButton">
+        🔴 Виділити
+    </button>
+
+    <button id="hostUnhighlightButton">
+        ⚪ Зняти виділення
+    </button>
+
+    <button id="hostHideCameraButton">
+        👁️ Приховати камеру
+    </button>
+
+    <button id="hostShowCameraButton">
+        📹 Показати камеру
+    </button>
+
+    <button id="hostKickButton" class="danger">
+        🚫 Вигнати
+    </button>
+
+</div>
+<!-- HOST PANEL -->
+<div id="hostPanel" class="host-panel">
+    <h3>👑 Керування ведучого</h3>
+    <p>Тут можна керувати учасниками гри.</p>
+
+    <div id="hostPlayersList"></div>
+</div>
+
+<!-- HOST MENU -->
+<div id="hostMenu" class="host-menu">
+
+    <div id="hostMenuTitle" class="host-menu-title">
+        Учасник
+    </div>
+
+    <button id="hostKillButton">
+        ☠️ Вбити
+    </button>
+
+    <button id="hostReviveButton">
+        ↩️ Воскресити
+    </button>
+
+    <button id="hostMuteButton">
+        🔇 Вимкнути мікрофон
+    </button>
+
+    <button id="hostUnmuteButton">
+        🎤 Дозволити мікрофон
+    </button>
+
+    <button id="hostHighlightButton">
+        🔴 Виділити
+    </button>
+
+    <button id="hostUnhighlightButton">
+        ⚪ Зняти виділення
+    </button>
+
+    <button id="hostHideCameraButton">
+        👁️ Приховати камеру
+    </button>
+
+    <button id="hostShowCameraButton">
+        📹 Показати камеру
+    </button>
+
+    <button id="hostKickButton" class="danger">
+        🚫 Вигнати
+    </button>
+
+</div>
 <script>
 
     /* =====================================================
@@ -530,22 +838,37 @@
 
     let leaving = false;
 
+    let isHost = false;
+    let hostStates = new Map();
+    let roomOrder = [];
+    let selectedHostTarget = null;
+    let draggedIdentity = null;
+
 
     /* =====================================================
        DOM
     ===================================================== */
 
-    const loginScreen = document.getElementById("loginScreen");
-    const app = document.getElementById("app");
+    const loginScreen =
+        document.getElementById("loginScreen");
 
-    const roomInput = document.getElementById("roomInput");
-    const nameInput = document.getElementById("nameInput");
+    const app =
+        document.getElementById("app");
 
-    const joinButton = document.getElementById("joinButton");
+    const roomInput =
+        document.getElementById("roomInput");
 
-    const errorMessage = document.getElementById("errorMessage");
+    const nameInput =
+        document.getElementById("nameInput");
 
-    const videoGrid = document.getElementById("videoGrid");
+    const joinButton =
+        document.getElementById("joinButton");
+
+    const errorMessage =
+        document.getElementById("errorMessage");
+
+    const videoGrid =
+        document.getElementById("videoGrid");
 
     const roomNameDisplay =
         document.getElementById("roomNameDisplay");
@@ -573,6 +896,21 @@
 
     const volumeList =
         document.getElementById("volumeList");
+
+    const hostPanelButton =
+        document.getElementById("hostPanelButton");
+
+    const hostPanel =
+        document.getElementById("hostPanel");
+
+    const hostPlayersList =
+        document.getElementById("hostPlayersList");
+
+    const hostMenu =
+        document.getElementById("hostMenu");
+
+    const hostMenuTitle =
+        document.getElementById("hostMenuTitle");
 
 
     /* =====================================================
@@ -620,7 +958,11 @@
        CREATE PARTICIPANT CARD
     ===================================================== */
 
-    function createParticipantCard(identity, name, isLocal = false) {
+    function createParticipantCard(
+        identity,
+        name,
+        isLocal = false
+    ) {
 
         if (participantCards.has(identity)) {
 
@@ -628,11 +970,14 @@
 
         }
 
-        const card = document.createElement("div");
+        const card =
+            document.createElement("div");
 
-        card.className = "video-card no-video";
+        card.className =
+            "video-card no-video";
 
-        card.dataset.identity = identity;
+        card.dataset.identity =
+            identity;
 
         card.innerHTML = `
 
@@ -654,6 +999,10 @@
                 🎤
             </div>
 
+            <div class="dead-overlay">
+                ВБИТО
+            </div>
+
             ${
                 isLocal
                     ? `<div class="local-badge">Ви</div>`
@@ -664,7 +1013,142 @@
 
         videoGrid.appendChild(card);
 
-        participantCards.set(identity, card);
+        card.draggable = true;
+
+        card.addEventListener(
+            "dragstart",
+            event => {
+
+                if (!isHost) {
+                    event.preventDefault();
+                    return;
+                }
+
+                draggedIdentity =
+                    identity;
+
+                card.classList.add(
+                    "dragging"
+                );
+
+                event.dataTransfer.effectAllowed =
+                    "move";
+
+            }
+        );
+
+        card.addEventListener(
+            "dragend",
+            () => {
+
+                draggedIdentity = null;
+
+                card.classList.remove(
+                    "dragging"
+                );
+
+                document
+                    .querySelectorAll(
+                        ".drag-over"
+                    )
+                    .forEach(
+                        el =>
+                            el.classList.remove(
+                                "drag-over"
+                            )
+                    );
+
+            }
+        );
+
+        card.addEventListener(
+            "dragover",
+            event => {
+
+                if (
+                    !isHost ||
+                    !draggedIdentity ||
+                    draggedIdentity === identity
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                card.classList.add(
+                    "drag-over"
+                );
+
+            }
+        );
+
+        card.addEventListener(
+            "dragleave",
+            () => {
+
+                card.classList.remove(
+                    "drag-over"
+                );
+
+            }
+        );
+
+        card.addEventListener(
+            "drop",
+            event => {
+
+                if (
+                    !isHost ||
+                    !draggedIdentity ||
+                    draggedIdentity === identity
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                card.classList.remove(
+                    "drag-over"
+                );
+
+                moveParticipantBefore(
+                    draggedIdentity,
+                    identity
+                );
+
+            }
+        );
+
+        card.addEventListener(
+            "contextmenu",
+            event => {
+
+                if (
+                    !isHost ||
+                    identity === participantName
+                ) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                openHostMenu(
+                    identity,
+                    event.clientX,
+                    event.clientY
+                );
+
+            }
+        );
+
+        participantCards.set(
+            identity,
+            card
+        );
+
+        getPlayerState(identity);
+
+        applyPlayerState(identity);
 
         updateParticipantCount();
 
@@ -674,18 +1158,632 @@
 
 
     /* =====================================================
-       REMOVE PARTICIPANT CARD
+       MAFIA GAME STATE / HOST
     ===================================================== */
 
-    function removeParticipantCard(identity) {
+    let currentHostIdentity = null;
 
-        const card = participantCards.get(identity);
+
+    function updateHostBadges() {
+
+        participantCards.forEach(
+            (card, identity) => {
+
+                const old =
+                    card.querySelector(
+                        ".host-badge"
+                    );
+
+                if (old) {
+                    old.remove();
+                }
+
+                if (
+                    identity ===
+                    currentHostIdentity
+                ) {
+
+                    const badge =
+                        document.createElement(
+                            "div"
+                        );
+
+                    badge.className =
+                        "host-badge";
+
+                    badge.textContent =
+                        "👑 ВЕДУЧИЙ";
+
+                    card.appendChild(
+                        badge
+                    );
+
+                }
+
+            }
+        );
+
+    }
+
+
+    function getPlayerState(identity) {
+
+        if (
+            !hostStates.has(identity)
+        ) {
+
+            hostStates.set(
+                identity,
+                {
+                    alive: true,
+                    mutedByHost: false,
+                    highlighted: false,
+                    cameraKilled: false
+                }
+            );
+
+        }
+
+        return hostStates.get(
+            identity
+        );
+
+    }
+
+
+    function applyPlayerState(identity) {
+
+        const card =
+            participantCards.get(
+                identity
+            );
 
         if (!card) {
             return;
         }
 
-        const video = card.querySelector("video");
+        const state =
+            getPlayerState(identity);
+
+        card.classList.toggle(
+            "dead",
+            !state.alive ||
+            state.cameraKilled
+        );
+
+        card.classList.toggle(
+            "game-highlight",
+            !!state.highlighted
+        );
+
+        const micStatus =
+            card.querySelector(
+                ".mic-status"
+            );
+
+        if (micStatus) {
+
+            micStatus.textContent =
+                state.mutedByHost
+                    ? "🔇"
+                    : (
+                        state.alive
+                            ? "🎤"
+                            : "☠️"
+                    );
+
+        }
+
+    }
+
+
+    function applyAllStates() {
+
+        participantCards.forEach(
+            (_, identity) =>
+                applyPlayerState(identity)
+        );
+
+        renderHostPanel();
+
+        applyRoomOrder();
+
+    }
+
+
+    function sendHostAction(
+        action,
+        target
+    ) {
+
+        if (
+            !isHost ||
+            !ws ||
+            ws.readyState !==
+                WebSocket.OPEN
+        ) {
+            return;
+        }
+
+        ws.send(
+            JSON.stringify({
+                type: "host-action",
+                action,
+                target
+            })
+        );
+
+    }
+
+
+    function renderHostPanel() {
+
+        if (!isHost) {
+
+            hostPanelButton.style.display =
+                "none";
+
+            hostPanel.style.display =
+                "none";
+
+            return;
+
+        }
+
+        hostPanelButton.style.display =
+            "block";
+
+        hostPlayersList.innerHTML =
+            "";
+
+        participantCards.forEach(
+            (card, identity) => {
+
+                const name =
+                    card.querySelector(
+                        ".participant-name"
+                    )?.textContent ||
+                    identity;
+
+                const state =
+                    getPlayerState(
+                        identity
+                    );
+
+                const row =
+                    document.createElement(
+                        "div"
+                    );
+
+                row.className =
+                    "host-player-row";
+
+                const label =
+                    document.createElement(
+                        "div"
+                    );
+
+                label.className =
+                    "host-player-name";
+
+                label.textContent =
+                    `${name}${
+                        identity ===
+                        participantName
+                            ? " (ви)"
+                            : ""
+                    }`;
+
+                const actions =
+                    document.createElement(
+                        "div"
+                    );
+
+                actions.className =
+                    "host-player-actions";
+
+                const kill =
+                    document.createElement(
+                        "button"
+                    );
+
+                kill.textContent =
+                    state.alive
+                        ? "☠️"
+                        : "↩️";
+
+                kill.title =
+                    state.alive
+                        ? "Вбити"
+                        : "Воскресити";
+
+                kill.onclick = () =>
+                    sendHostAction(
+                        state.alive
+                            ? "kill"
+                            : "revive",
+                        identity
+                    );
+
+                const highlight =
+                    document.createElement(
+                        "button"
+                    );
+
+                highlight.textContent =
+                    state.highlighted
+                        ? "⚪"
+                        : "🔴";
+
+                highlight.title =
+                    state.highlighted
+                        ? "Зняти виділення"
+                        : "Виділити";
+
+                highlight.onclick = () =>
+                    sendHostAction(
+                        state.highlighted
+                            ? "unhighlight"
+                            : "highlight",
+                        identity
+                    );
+
+                const mute =
+                    document.createElement(
+                        "button"
+                    );
+
+                mute.textContent =
+                    state.mutedByHost
+                        ? "🔊"
+                        : "🎤";
+
+                mute.title =
+                    state.mutedByHost
+                        ? "Дозволити говорити"
+                        : "Заборонити говорити";
+
+                mute.onclick = () =>
+                    sendHostAction(
+                        state.mutedByHost
+                            ? "unmute"
+                            : "mute",
+                        identity
+                    );
+
+                const kick =
+                    document.createElement(
+                        "button"
+                    );
+
+                kick.textContent =
+                    "🚫";
+
+                kick.title =
+                    "Вигнати";
+
+                kick.onclick = () => {
+
+                    if (
+                        identity !==
+                            participantName &&
+                        confirm(
+                            `Вигнати ${name} з кімнати?`
+                        )
+                    ) {
+
+                        sendHostAction(
+                            "kick",
+                            identity
+                        );
+
+                    }
+
+                };
+
+                actions.append(
+                    kill,
+                    highlight,
+                    mute,
+                    kick
+                );
+
+                row.append(
+                    label,
+                    actions
+                );
+
+                hostPlayersList.appendChild(
+                    row
+                );
+
+            }
+        );
+
+    }
+
+
+    function openHostMenu(
+        identity,
+        x,
+        y
+    ) {
+
+        if (
+            !isHost ||
+            identity === participantName
+        ) {
+            return;
+        }
+
+        selectedHostTarget =
+            identity;
+
+        const card =
+            participantCards.get(
+                identity
+            );
+
+        hostMenuTitle.textContent =
+            card?.querySelector(
+                ".participant-name"
+            )?.textContent ||
+            identity;
+
+        const state =
+            getPlayerState(identity);
+
+        document
+            .getElementById(
+                "hostKillButton"
+            )
+            .style.display =
+                state.alive
+                    ? "block"
+                    : "none";
+
+        document
+            .getElementById(
+                "hostReviveButton"
+            )
+            .style.display =
+                state.alive
+                    ? "none"
+                    : "block";
+
+        document
+            .getElementById(
+                "hostMuteButton"
+            )
+            .style.display =
+                state.mutedByHost
+                    ? "none"
+                    : "block";
+
+        document
+            .getElementById(
+                "hostUnmuteButton"
+            )
+            .style.display =
+                state.mutedByHost
+                    ? "block"
+                    : "none";
+
+        document
+            .getElementById(
+                "hostHighlightButton"
+            )
+            .style.display =
+                state.highlighted
+                    ? "none"
+                    : "block";
+
+        document
+            .getElementById(
+                "hostUnhighlightButton"
+            )
+            .style.display =
+                state.highlighted
+                    ? "block"
+                    : "none";
+
+        document
+            .getElementById(
+                "hostHideCameraButton"
+            )
+            .style.display =
+                state.cameraKilled
+                    ? "none"
+                    : "block";
+
+        document
+            .getElementById(
+                "hostShowCameraButton"
+            )
+            .style.display =
+                state.cameraKilled
+                    ? "block"
+                    : "none";
+
+        hostMenu.style.left =
+            Math.min(
+                x,
+                window.innerWidth - 245
+            ) + "px";
+
+        hostMenu.style.top =
+            Math.min(
+                y,
+                window.innerHeight - 360
+            ) + "px";
+
+        hostMenu.style.display =
+            "block";
+
+    }
+
+
+    function closeHostMenu() {
+
+        hostMenu.style.display =
+            "none";
+
+        selectedHostTarget =
+            null;
+
+    }
+
+
+    function moveParticipantBefore(
+        fromIdentity,
+        toIdentity
+    ) {
+
+        if (
+            !isHost ||
+            fromIdentity === toIdentity
+        ) {
+            return;
+        }
+
+        const order =
+            getCurrentOrder();
+
+        const fromIndex =
+            order.indexOf(
+                fromIdentity
+            );
+
+        const toIndex =
+            order.indexOf(
+                toIdentity
+            );
+
+        if (
+            fromIndex < 0 ||
+            toIndex < 0
+        ) {
+            return;
+        }
+
+        order.splice(
+            fromIndex,
+            1
+        );
+
+        const newToIndex =
+            order.indexOf(
+                toIdentity
+            );
+
+        order.splice(
+            newToIndex,
+            0,
+            fromIdentity
+        );
+
+        roomOrder =
+            order;
+
+        applyRoomOrder();
+
+        if (
+            ws &&
+            ws.readyState ===
+                WebSocket.OPEN
+        ) {
+
+            ws.send(
+                JSON.stringify({
+                    type: "host-action",
+                    action: "order",
+                    order
+                })
+            );
+
+        }
+
+    }
+
+
+    function getCurrentOrder() {
+
+        const ids =
+            Array.from(
+                participantCards.keys()
+            );
+
+        const known =
+            roomOrder.filter(
+                id => ids.includes(id)
+            );
+
+        ids.forEach(
+            id => {
+
+                if (
+                    !known.includes(id)
+                ) {
+                    known.push(id);
+                }
+
+            }
+        );
+
+        return known;
+
+    }
+
+
+    function applyRoomOrder() {
+
+        const order =
+            getCurrentOrder();
+
+        roomOrder =
+            order;
+
+        order.forEach(
+            identity => {
+
+                const card =
+                    participantCards.get(
+                        identity
+                    );
+
+                if (card) {
+                    videoGrid.appendChild(
+                        card
+                    );
+                }
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       REMOVE PARTICIPANT CARD
+    ===================================================== */
+
+    function removeParticipantCard(
+        identity
+    ) {
+
+        const card =
+            participantCards.get(
+                identity
+            );
+
+        if (!card) {
+            return;
+        }
+
+        const video =
+            card.querySelector(
+                "video"
+            );
 
         if (video) {
 
@@ -693,17 +1791,24 @@
                 video.pause();
             } catch {}
 
-            video.srcObject = null;
+            video.srcObject =
+                null;
 
         }
 
         card.remove();
 
-        participantCards.delete(identity);
+        participantCards.delete(
+            identity
+        );
 
-        videoElements.delete(identity);
+        videoElements.delete(
+            identity
+        );
 
-        audioElements.delete(identity);
+        audioElements.delete(
+            identity
+        );
 
         updateParticipantCount();
 
@@ -716,9 +1821,13 @@
        VIDEO ATTACH
     ===================================================== */
 
-    function attachVideoTrack(track, participant) {
+    function attachVideoTrack(
+        track,
+        participant
+    ) {
 
-        const identity = participant.identity;
+        const identity =
+            participant.identity;
 
         const name =
             participant.name ||
@@ -732,7 +1841,9 @@
             );
 
         const video =
-            card.querySelector("video");
+            card.querySelector(
+                "video"
+            );
 
         if (!video) {
             return;
@@ -744,53 +1855,98 @@
 
         } catch {}
 
-        track.attach(video);
+        track.attach(
+            video
+        );
 
-        video.autoplay = true;
-        video.playsInline = true;
+        video.autoplay =
+            true;
 
-        if (participant.isLocal) {
-            video.muted = true;
+        video.playsInline =
+            true;
+
+        if (
+            participant.isLocal
+        ) {
+
+            video.muted =
+                true;
+
         }
 
-        card.classList.remove("no-video");
+        card.classList.remove(
+            "no-video"
+        );
 
-        videoElements.set(identity, video);
+        videoElements.set(
+            identity,
+            video
+        );
+
+        const state =
+            getPlayerState(
+                identity
+            );
+
+        if (
+            state.cameraKilled
+        ) {
+
+            card.classList.add(
+                "dead"
+            );
+
+        }
+
+        applyPlayerState(
+            identity
+        );
 
     }
 
 
-    /* =====================================================
-       VIDEO DETACH
-    ===================================================== */
+    function detachVideoTrack(
+        track,
+        participant
+    ) {
 
-    function detachVideoTrack(track, participant) {
-
-        const identity = participant.identity;
-
-        try {
-
-            track.detach();
-
-        } catch {}
+        const identity =
+            participant.identity;
 
         const video =
-            videoElements.get(identity);
+            videoElements.get(
+                identity
+            );
 
         if (video) {
 
-            video.srcObject = null;
+            try {
+
+                track.detach(
+                    video
+                );
+
+            } catch {}
+
+            video.srcObject =
+                null;
 
         }
 
-        videoElements.delete(identity);
+        videoElements.delete(
+            identity
+        );
 
         const card =
-            participantCards.get(identity);
+            participantCards.get(
+                identity
+            );
 
         if (card) {
 
-            card.classList.add("no-video");
+            card.classList.add(
+                "no-video"
+            );
 
         }
 
@@ -801,66 +1957,69 @@
        AUDIO ATTACH
     ===================================================== */
 
-    function attachAudioTrack(track, participant) {
+    function attachAudioTrack(
+        track,
+        participant
+    ) {
 
-        const identity = participant.identity;
+        const identity =
+            participant.identity;
 
-        let audio =
-            audioElements.get(identity);
+        if (
+            audioElements.has(
+                identity
+            )
+        ) {
 
-        if (!audio) {
+            const old =
+                audioElements.get(
+                    identity
+                );
 
-            audio =
-                document.createElement("audio");
+            try {
+                old.pause();
+            } catch {}
 
-            audio.autoplay = true;
-
-            audio.playsInline = true;
-
-            audio.dataset.identity = identity;
-
-            document.body.appendChild(audio);
-
-            audioElements.set(identity, audio);
-
-        }
-
-        try {
-
-            track.detach();
-
-        } catch {}
-
-        track.attach(audio);
-
-        audio.autoplay = true;
-
-        if (!participant.isLocal) {
-
-            audio.muted = false;
-
-            audio.volume = 1;
-
-            audio.play().catch(() => {});
+            old.remove();
 
         }
+
+        const audio =
+            document.createElement(
+                "audio"
+            );
+
+        audio.autoplay =
+            true;
+
+        audio.playsInline =
+            true;
+
+        audio.volume =
+            1;
+
+        track.attach(
+            audio
+        );
+
+        document.body.appendChild(
+            audio
+        );
+
+        audioElements.set(
+            identity,
+            audio
+        );
 
         updateVolumeList();
 
     }
 
 
-    /* =====================================================
-       AUDIO DETACH
-    ===================================================== */
-
-    function detachAudioTrack(track, participant) {
-
-        try {
-
-            track.detach();
-
-        } catch {}
+    function detachAudioTrack(
+        track,
+        participant
+    ) {
 
         const audio =
             audioElements.get(
@@ -869,9 +2028,16 @@
 
         if (audio) {
 
-            audio.pause();
+            try {
 
-            audio.srcObject = null;
+                track.detach(
+                    audio
+                );
+
+            } catch {}
+
+            audio.srcObject =
+                null;
 
             audio.remove();
 
@@ -890,7 +2056,9 @@
        UPDATE MIC ICON
     ===================================================== */
 
-    function updateParticipantMic(participant) {
+    function updateParticipantMic(
+        participant
+    ) {
 
         const card =
             participantCards.get(
@@ -902,23 +2070,31 @@
         }
 
         const micStatus =
-            card.querySelector(".mic-status");
+            card.querySelector(
+                ".mic-status"
+            );
 
         if (!micStatus) {
             return;
         }
 
-        if (participant.isMicrophoneEnabled) {
+        if (
+            participant.isMicrophoneEnabled
+        ) {
 
-            micStatus.textContent = "🎤";
+            micStatus.textContent =
+                "🎤";
 
-            micStatus.style.opacity = "1";
+            micStatus.style.opacity =
+                "1";
 
         } else {
 
-            micStatus.textContent = "🔇";
+            micStatus.textContent =
+                "🔇";
 
-            micStatus.style.opacity = "0.9";
+            micStatus.style.opacity =
+                "0.9";
 
         }
 
@@ -955,7 +2131,9 @@
         );
 
         cameraButton.textContent =
-            cameraOn ? "📹" : "📷";
+            cameraOn
+                ? "📹"
+                : "📷";
 
         micButton.classList.toggle(
             "active",
@@ -968,9 +2146,13 @@
         );
 
         micButton.textContent =
-            micOn ? "🎤" : "🔇";
+            micOn
+                ? "🎤"
+                : "🔇";
 
-        updateParticipantMic(local);
+        updateParticipantMic(
+            local
+        );
 
     }
 
@@ -996,12 +2178,14 @@
 
     function updateVolumeList() {
 
-        volumeList.innerHTML = "";
+        volumeList.innerHTML =
+            "";
 
         audioElements.forEach(
             (audio, identity) => {
 
-                let name = identity;
+                let name =
+                    identity;
 
                 const participant =
                     room?.getParticipantByIdentity(
@@ -1017,13 +2201,17 @@
                 }
 
                 const row =
-                    document.createElement("div");
+                    document.createElement(
+                        "div"
+                    );
 
                 row.className =
                     "volume-row";
 
                 const currentVolume =
-                    Math.round(audio.volume * 100);
+                    Math.round(
+                        audio.volume * 100
+                    );
 
                 row.innerHTML = `
 
@@ -1058,7 +2246,9 @@
                     () => {
 
                         const value =
-                            Number(slider.value);
+                            Number(
+                                slider.value
+                            );
 
                         audio.volume =
                             value / 100;
@@ -1071,7 +2261,9 @@
                     }
                 );
 
-                volumeList.appendChild(row);
+                volumeList.appendChild(
+                    row
+                );
 
             }
         );
@@ -1094,11 +2286,14 @@
 
         createParticipantCard(
             local.identity,
-            local.name || local.identity,
+            local.name ||
+                local.identity,
             true
         );
 
-        updateParticipantMic(local);
+        updateParticipantMic(
+            local
+        );
 
         room.remoteParticipants.forEach(
             participant => {
@@ -1106,7 +2301,7 @@
                 createParticipantCard(
                     participant.identity,
                     participant.name ||
-                    participant.identity,
+                        participant.identity,
                     false
                 );
 
@@ -1115,40 +2310,42 @@
                 );
 
                 participant.trackPublications
-                    .forEach(publication => {
-
-                        if (
-                            publication.isSubscribed &&
-                            publication.track
-                        ) {
+                    .forEach(
+                        publication => {
 
                             if (
-                                publication.kind ===
-                                LivekitClient.Track.Kind.Video
+                                publication.isSubscribed &&
+                                publication.track
                             ) {
 
-                                attachVideoTrack(
-                                    publication.track,
-                                    participant
-                                );
+                                if (
+                                    publication.kind ===
+                                    LivekitClient.Track.Kind.Video
+                                ) {
 
-                            }
+                                    attachVideoTrack(
+                                        publication.track,
+                                        participant
+                                    );
 
-                            if (
-                                publication.kind ===
-                                LivekitClient.Track.Kind.Audio
-                            ) {
+                                }
 
-                                attachAudioTrack(
-                                    publication.track,
-                                    participant
-                                );
+                                if (
+                                    publication.kind ===
+                                    LivekitClient.Track.Kind.Audio
+                                ) {
+
+                                    attachAudioTrack(
+                                        publication.track,
+                                        participant
+                                    );
+
+                                }
 
                             }
 
                         }
-
-                    });
+                    );
 
             }
         );
@@ -1156,13 +2353,120 @@
         updateParticipantCount();
 
     }
+        /* =====================================================
+       CONNECT TO LIVEKIT
+    ===================================================== */
+
+    async function connectToLiveKit() {
+
+        try {
+
+            connectionStatus.textContent =
+                "Підключення до LiveKit...";
+
+            const response =
+                await fetch(
+                    "/api/livekit-token",
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+                            roomName,
+                            participantName
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    data.error ||
+                    "Не вдалося отримати LiveKit token"
+                );
+
+            }
+
+            room =
+                new LivekitClient.Room({
+                    adaptiveStream: true,
+                    dynacast: true
+                });
+
+            setupLiveKitEvents();
+
+            await room.connect(
+                data.url,
+                data.token
+            );
+
+            connectionStatus.textContent =
+                "🟢 Підключено";
+
+            isHost =
+                !!data.host;
+
+            currentHostIdentity =
+                data.host
+                    ? participantName
+                    : null;
+
+            createParticipantCard(
+                room.localParticipant.identity,
+                room.localParticipant.name ||
+                    room.localParticipant.identity,
+                true
+            );
+
+            await room.localParticipant
+                .setCameraEnabled(true);
+
+            await room.localParticipant
+                .setMicrophoneEnabled(true);
+
+            updateControls();
+
+            renderExistingParticipants();
+
+            updateHostBadges();
+
+            connectWebSocket();
+
+        } catch (error) {
+
+            console.error(
+                "LiveKit connection error:",
+                error
+            );
+
+            showError(
+                error.message ||
+                "Не вдалося підключитися"
+            );
+
+            await leaveRoom();
+
+        }
+
+    }
 
 
     /* =====================================================
-       ROOM EVENTS
+       LIVEKIT EVENTS
     ===================================================== */
 
-    function setupRoomEvents() {
+    function setupLiveKitEvents() {
+
+        if (!room) {
+            return;
+        }
 
         room.on(
             LivekitClient.RoomEvent.ParticipantConnected,
@@ -1171,7 +2475,7 @@
                 createParticipantCard(
                     participant.identity,
                     participant.name ||
-                    participant.identity,
+                        participant.identity,
                     false
                 );
 
@@ -1180,8 +2484,6 @@
                 );
 
                 updateParticipantCount();
-
-                updateVolumeList();
 
             }
         );
@@ -1195,13 +2497,19 @@
                     participant.identity
                 );
 
+                updateParticipantCount();
+
             }
         );
 
 
         room.on(
             LivekitClient.RoomEvent.TrackSubscribed,
-            (track, publication, participant) => {
+            (
+                track,
+                publication,
+                participant
+            ) => {
 
                 if (
                     track.kind ===
@@ -1237,7 +2545,11 @@
 
         room.on(
             LivekitClient.RoomEvent.TrackUnsubscribed,
-            (track, publication, participant) => {
+            (
+                track,
+                publication,
+                participant
+            ) => {
 
                 if (
                     track.kind ===
@@ -1287,6 +2599,17 @@
 
                     }
 
+                    if (
+                        publication.kind ===
+                        LivekitClient.Track.Kind.Audio
+                    ) {
+
+                        updateParticipantMic(
+                            room.localParticipant
+                        );
+
+                    }
+
                 }
 
                 updateControls();
@@ -1300,14 +2623,14 @@
             publication => {
 
                 if (
-                    publication.track
+                    publication.kind ===
+                    LivekitClient.Track.Kind.Video
                 ) {
 
-                    try {
-
-                        publication.track.detach();
-
-                    } catch {}
+                    detachVideoTrack(
+                        publication.track,
+                        room.localParticipant
+                    );
 
                 }
 
@@ -1319,7 +2642,10 @@
 
         room.on(
             LivekitClient.RoomEvent.TrackMuted,
-            (publication, participant) => {
+            (
+                publication,
+                participant
+            ) => {
 
                 updateParticipantMic(
                     participant
@@ -1331,7 +2657,10 @@
 
         room.on(
             LivekitClient.RoomEvent.TrackUnmuted,
-            (publication, participant) => {
+            (
+                publication,
+                participant
+            ) => {
 
                 updateParticipantMic(
                     participant
@@ -1346,24 +2675,28 @@
             speakers => {
 
                 participantCards.forEach(
-                    (card, identity) => {
+                    card => {
 
-                        const active =
-                            speakers.some(
-                                participant =>
-                                    participant.identity ===
-                                    identity
+                        card.classList.remove(
+                            "speaking"
+                        );
+
+                    }
+                );
+
+                speakers.forEach(
+                    participant => {
+
+                        const card =
+                            participantCards.get(
+                                participant.identity
                             );
 
-                        if (active) {
+                        if (card) {
 
-                            card.style.border =
-                                "2px solid #22c55e";
-
-                        } else {
-
-                            card.style.border =
-                                "1px solid #374151";
+                            card.classList.add(
+                                "speaking"
+                            );
 
                         }
 
@@ -1378,238 +2711,11 @@
             LivekitClient.RoomEvent.Disconnected,
             () => {
 
-                if (!leaving) {
-
-                    connectionStatus.textContent =
-                        "Відключено";
-
-                }
+                connectionStatus.textContent =
+                    "🔴 Відключено";
 
             }
         );
-
-
-        room.on(
-            LivekitClient.RoomEvent.MediaDevicesError,
-            error => {
-
-                console.error(
-                    "Media device error:",
-                    error
-                );
-
-                showError(
-                    "Не вдалося отримати доступ до камери або мікрофона."
-                );
-
-            }
-        );
-
-    }
-
-
-    /* =====================================================
-       CONNECT
-    ===================================================== */
-
-    async function connectToRoom() {
-
-        roomName =
-            roomInput.value.trim();
-
-        participantName =
-            nameInput.value.trim();
-
-        clearError();
-
-        if (!roomName) {
-
-            showError(
-                "Введи назву кімнати."
-            );
-
-            return;
-
-        }
-
-        if (!participantName) {
-
-            showError(
-                "Введи своє ім'я."
-            );
-
-            return;
-
-        }
-
-        joinButton.disabled = true;
-
-        joinButton.textContent =
-            "Підключення...";
-
-        try {
-
-            const response =
-                await fetch(
-                    "/api/livekit-token",
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Content-Type":
-                                "application/json"
-                        },
-
-                        body: JSON.stringify({
-                            roomName,
-                            participantName
-                        })
-                    }
-                );
-
-            const data =
-                await response.json();
-
-            if (!response.ok) {
-
-                throw new Error(
-                    data.error ||
-                    "Не вдалося отримати токен."
-                );
-
-            }
-
-
-            /* =========================
-               CREATE ROOM
-            ========================= */
-
-            room =
-                new LivekitClient.Room({
-
-                    adaptiveStream: true,
-
-                    dynacast: true,
-
-                    disconnectOnPageLeave: false,
-
-                    videoCaptureDefaults: {
-
-                        resolution:
-                            LivekitClient.VideoPresets
-                                .h720
-                                .resolution
-
-                    }
-
-                });
-
-
-            setupRoomEvents();
-
-
-            /* =========================
-               CONNECT
-            ========================= */
-
-            connectionStatus.textContent =
-                "Підключення...";
-
-            await room.connect(
-                data.url,
-                data.token,
-                {
-                    autoSubscribe: true
-                }
-            );
-
-
-            /* =========================
-               UI
-            ========================= */
-
-            loginScreen.style.display =
-                "none";
-
-            app.style.display =
-                "flex";
-
-            roomNameDisplay.textContent =
-                `Кімната: ${roomName}`;
-
-            connectionStatus.textContent =
-                "Підключено";
-
-            createParticipantCard(
-                room.localParticipant.identity,
-                room.localParticipant.name ||
-                participantName,
-                true
-            );
-
-
-            /* =========================
-               CAMERA + MICROPHONE
-            ========================= */
-
-            try {
-
-                await room.localParticipant
-                    .enableCameraAndMicrophone();
-
-            } catch (mediaError) {
-
-                console.error(
-                    "Camera/microphone error:",
-                    mediaError
-                );
-
-                /*
-                    Якщо браузер не дав доступ,
-                    кімната все одно відкриється.
-                */
-
-                showError(
-                    "Кімната відкрита, але немає доступу до камери/мікрофона."
-                );
-
-            }
-
-
-            renderExistingParticipants();
-
-            updateControls();
-
-            updateVolumeList();
-
-            updateParticipantCount();
-
-
-            /* =========================
-               WEBSOCKET
-            ========================= */
-
-            connectWebSocket();
-
-        } catch (error) {
-
-            console.error(
-                "Connection error:",
-                error
-            );
-
-            showError(
-                error.message ||
-                "Не вдалося підключитися."
-            );
-
-            joinButton.disabled =
-                false;
-
-            joinButton.textContent =
-                "Увійти в кімнату";
-
-        }
 
     }
 
@@ -1620,59 +2726,449 @@
 
     function connectWebSocket() {
 
-        try {
+        if (ws) {
 
-            const protocol =
-                location.protocol === "https:"
-                    ? "wss:"
-                    : "ws:";
+            try {
+                ws.close();
+            } catch {}
 
-            ws =
-                new WebSocket(
-                    `${protocol}//${location.host}/ws`
+        }
+
+        const protocol =
+            location.protocol === "https:"
+                ? "wss:"
+                : "ws:";
+
+        ws =
+            new WebSocket(
+                `${protocol}//${location.host}/ws`
+            );
+
+
+        ws.addEventListener(
+            "open",
+            () => {
+
+                ws.send(
+                    JSON.stringify({
+                        type: "join",
+                        roomName,
+                        playerName:
+                            participantName
+                    })
                 );
 
-            ws.addEventListener(
-                "open",
-                () => {
+            }
+        );
 
-                    ws.send(
-                        JSON.stringify({
-                            type: "join",
-                            roomName,
-                            playerName:
-                                participantName
-                        })
+
+        ws.addEventListener(
+            "message",
+            event => {
+
+                try {
+
+                    const message =
+                        JSON.parse(
+                            event.data
+                        );
+
+                    handleWebSocketMessage(
+                        message
+                    );
+
+                } catch (error) {
+
+                    console.error(
+                        "WebSocket parse error:",
+                        error
                     );
 
                 }
-            );
 
-            ws.addEventListener(
-                "message",
-                event => {
+            }
+        );
 
-                    try {
 
-                        const message =
-                            JSON.parse(
-                                event.data
-                            );
+        ws.addEventListener(
+            "close",
+            () => {
 
-                        console.log(
-                            "WebSocket:",
-                            message
-                        );
+                if (!leaving) {
 
-                    } catch {}
+                    connectionStatus.textContent =
+                        "🟡 Сигнал кімнати втрачено";
 
                 }
+
+            }
+        );
+
+
+        ws.addEventListener(
+            "error",
+            error => {
+
+                console.error(
+                    "WebSocket error:",
+                    error
+                );
+
+            }
+        );
+
+    }
+
+
+    /* =====================================================
+       WEBSOCKET MESSAGE HANDLER
+    ===================================================== */
+
+    function handleWebSocketMessage(
+        message
+    ) {
+
+        if (
+            message.type ===
+            "error"
+        ) {
+
+            showError(
+                message.message ||
+                "Помилка кімнати"
             );
+
+            return;
+
+        }
+
+
+        if (
+            message.type ===
+            "room-info"
+        ) {
+
+            currentHostIdentity =
+                message.host ||
+                null;
+
+            isHost =
+                currentHostIdentity ===
+                participantName;
+
+            hostStates =
+                new Map(
+                    Object.entries(
+                        message.states || {}
+                    )
+                );
+
+            roomOrder =
+                Array.isArray(
+                    message.order
+                )
+                    ? message.order
+                    : [];
+
+            updateHostBadges();
+
+            applyAllStates();
+
+            renderHostPanel();
+
+            return;
+
+        }
+
+
+        if (
+            message.type ===
+            "host-changed"
+        ) {
+
+            currentHostIdentity =
+                message.host ||
+                null;
+
+            isHost =
+                currentHostIdentity ===
+                participantName;
+
+            updateHostBadges();
+
+            renderHostPanel();
+
+            applyAllStates();
+
+            return;
+
+        }
+
+
+        if (
+            message.type ===
+            "player-joined"
+        ) {
+
+            updateParticipantCount();
+
+            return;
+
+        }
+
+
+        if (
+            message.type ===
+            "player-left"
+        ) {
+
+            if (
+                message.playerName
+            ) {
+
+                removeParticipantCard(
+                    message.playerName
+                );
+
+            }
+
+            if (
+                message.host
+            ) {
+
+                currentHostIdentity =
+                    message.host;
+
+                isHost =
+                    currentHostIdentity ===
+                    participantName;
+
+            }
+
+            if (
+                message.states
+            ) {
+
+                hostStates =
+                    new Map(
+                        Object.entries(
+                            message.states
+                        )
+                    );
+
+            }
+
+            if (
+                Array.isArray(
+                    message.order
+                )
+            ) {
+
+                roomOrder =
+                    message.order;
+
+            }
+
+            updateHostBadges();
+
+            applyAllStates();
+
+            return;
+
+        }
+
+
+        if (
+            message.type ===
+            "state-update"
+        ) {
+
+            if (
+                message.target
+            ) {
+
+                hostStates.set(
+                    message.target,
+                    message.state
+                );
+
+                applyPlayerState(
+                    message.target
+                );
+
+            }
+
+            renderHostPanel();
+
+            return;
+
+        }
+
+
+        if (
+            message.type ===
+            "room-order"
+        ) {
+
+            if (
+                Array.isArray(
+                    message.order
+                )
+            ) {
+
+                roomOrder =
+                    message.order;
+
+                applyRoomOrder();
+
+            }
+
+            return;
+
+        }
+
+
+        if (
+            message.type ===
+            "host-kick"
+        ) {
+
+            if (
+                message.target ===
+                participantName
+            ) {
+
+                alert(
+                    "Вас вигнав ведучий."
+                );
+
+                leaveRoom();
+
+            }
+
+            return;
+
+        }
+
+    }
+
+
+    /* =====================================================
+       JOIN ROOM
+    ===================================================== */
+
+    async function joinRoom() {
+
+        clearError();
+
+        const enteredRoom =
+            roomInput.value.trim();
+
+        const enteredName =
+            nameInput.value.trim();
+
+        if (!enteredRoom) {
+
+            showError(
+                "Введи назву кімнати"
+            );
+
+            roomInput.focus();
+
+            return;
+
+        }
+
+        if (!enteredName) {
+
+            showError(
+                "Введи своє ім'я"
+            );
+
+            nameInput.focus();
+
+            return;
+
+        }
+
+        roomName =
+            enteredRoom;
+
+        participantName =
+            enteredName;
+
+        leaving =
+            false;
+
+        joinButton.disabled =
+            true;
+
+        joinButton.textContent =
+            "Підключення...";
+
+        roomNameDisplay.textContent =
+            `🎭 ${roomName}`;
+
+        loginScreen.style.display =
+            "none";
+
+        app.style.display =
+            "flex";
+
+        try {
+
+            await connectToLiveKit();
 
         } catch (error) {
 
             console.error(
-                "WebSocket error:",
+                error
+            );
+
+            loginScreen.style.display =
+                "flex";
+
+            app.style.display =
+                "none";
+
+        } finally {
+
+            joinButton.disabled =
+                false;
+
+            joinButton.textContent =
+                "Увійти в кімнату";
+
+        }
+
+    }
+
+
+    /* =====================================================
+       CAMERA
+    ===================================================== */
+
+    async function toggleCamera() {
+
+        if (!room) {
+            return;
+        }
+
+        try {
+
+            const local =
+                room.localParticipant;
+
+            await local.setCameraEnabled(
+                !local.isCameraEnabled
+            );
+
+            updateControls();
+
+        } catch (error) {
+
+            console.error(
+                "Camera error:",
                 error
             );
 
@@ -1682,233 +3178,49 @@
 
 
     /* =====================================================
-       CAMERA BUTTON
+       MICROPHONE
     ===================================================== */
 
-    cameraButton.addEventListener(
-        "click",
-        async () => {
+    async function toggleMicrophone() {
 
-            if (!room) {
-                return;
-            }
-
-            try {
-
-                await room.localParticipant
-                    .setCameraEnabled(
-                        !room.localParticipant
-                            .isCameraEnabled
-                    );
-
-                updateControls();
-
-            } catch (error) {
-
-                console.error(
-                    "Camera error:",
-                    error
-                );
-
-            }
-
-        }
-    );
-
-
-    /* =====================================================
-       MICROPHONE BUTTON
-    ===================================================== */
-
-    micButton.addEventListener(
-        "click",
-        async () => {
-
-            if (!room) {
-                return;
-            }
-
-            try {
-
-                await room.localParticipant
-                    .setMicrophoneEnabled(
-                        !room.localParticipant
-                            .isMicrophoneEnabled
-                    );
-
-                updateControls();
-
-            } catch (error) {
-
-                console.error(
-                    "Microphone error:",
-                    error
-                );
-
-            }
-
-        }
-    );
-
-
-    /* =====================================================
-       VOLUME BUTTON
-    ===================================================== */
-
-    volumeButton.addEventListener(
-        "click",
-        () => {
-
-            const isVisible =
-                volumePanel.style.display ===
-                "block";
-
-            volumePanel.style.display =
-                isVisible
-                    ? "none"
-                    : "block";
-
-            if (!isVisible) {
-
-                updateVolumeList();
-
-            }
-
-        }
-    );
-
-
-    /* =====================================================
-       LEAVE ROOM
-    ===================================================== */
-
-    leaveButton.addEventListener(
-        "click",
-        leaveRoom
-    );
-
-
-    async function leaveRoom() {
-
-        if (leaving) {
+        if (!room) {
             return;
         }
 
-        leaving = true;
+        const state =
+            getPlayerState(
+                participantName
+            );
 
-        leaveButton.disabled =
-            true;
+        if (
+            state.mutedByHost
+        ) {
+
+            alert(
+                "Ведучий вимкнув вам мікрофон."
+            );
+
+            return;
+
+        }
 
         try {
 
-            /* =========================
-               CLOSE WEBSOCKET
-            ========================= */
+            const local =
+                room.localParticipant;
 
-            if (ws) {
+            await local.setMicrophoneEnabled(
+                !local.isMicrophoneEnabled
+            );
 
-                try {
-                    ws.close();
-                } catch {}
+            updateControls();
 
-                ws = null;
+        } catch (error) {
 
-            }
-
-
-            /* =========================
-               DISCONNECT LIVEKIT
-               stopTracks = true
-            ========================= */
-
-            if (room) {
-
-                try {
-
-                    await room.disconnect(
-                        true
-                    );
-
-                } catch (error) {
-
-                    console.error(
-                        "LiveKit disconnect error:",
-                        error
-                    );
-
-                }
-
-            }
-
-
-            /* =========================
-               REMOVE ALL MEDIA
-            ========================= */
-
-            document
-                .querySelectorAll(
-                    "video, audio"
-                )
-                .forEach(element => {
-
-                    try {
-                        element.pause();
-                    } catch {}
-
-                    try {
-                        element.srcObject = null;
-                    } catch {}
-
-                    element.remove();
-
-                });
-
-
-            /* =========================
-               RESET
-            ========================= */
-
-            room = null;
-
-            videoElements.clear();
-
-            audioElements.clear();
-
-            participantCards.clear();
-
-            videoGrid.innerHTML = "";
-
-            volumeList.innerHTML = "";
-
-            volumePanel.style.display =
-                "none";
-
-            connectionStatus.textContent =
-                "Підключення...";
-
-            participantsCount.textContent =
-                "0 / 12";
-
-            app.style.display =
-                "none";
-
-            loginScreen.style.display =
-                "flex";
-
-            joinButton.disabled =
-                false;
-
-            joinButton.textContent =
-                "Увійти в кімнату";
-
-            clearError();
-
-        } finally {
-
-            leaving = false;
-
-            leaveButton.disabled =
-                false;
+            console.error(
+                "Microphone error:",
+                error
+            );
 
         }
 
@@ -1916,14 +3228,187 @@
 
 
     /* =====================================================
-       ENTER KEY
+       VOLUME PANEL
     ===================================================== */
+
+    function toggleVolumePanel() {
+
+        const visible =
+            volumePanel.style.display ===
+            "block";
+
+        volumePanel.style.display =
+            visible
+                ? "none"
+                : "block";
+
+        if (!visible) {
+            updateVolumeList();
+        }
+
+    }
+
+
+    /* =====================================================
+       LEAVE ROOM
+    ===================================================== */
+
+    async function leaveRoom() {
+
+        if (leaving) {
+            return;
+        }
+
+        leaving =
+            true;
+
+        try {
+
+            if (ws) {
+
+                try {
+                    ws.close();
+                } catch {}
+
+                ws =
+                    null;
+
+            }
+
+            if (room) {
+
+                try {
+
+                    room.localParticipant
+                        .trackPublications
+                        .forEach(
+                            publication => {
+
+                                try {
+
+                                    if (
+                                        publication.track
+                                    ) {
+
+                                        publication.track.stop();
+
+                                    }
+
+                                } catch {}
+
+                            }
+                        );
+
+                } catch {}
+
+                try {
+
+                    await room.disconnect();
+
+                } catch (error) {
+
+                    console.error(
+                        "Room disconnect error:",
+                        error
+                    );
+
+                }
+
+                room =
+                    null;
+
+            }
+
+        } finally {
+
+            document
+                .querySelectorAll(
+                    "video, audio"
+                )
+                .forEach(
+                    element => {
+
+                        try {
+                            element.pause();
+                        } catch {}
+
+                        try {
+                            element.srcObject =
+                                null;
+                        } catch {}
+
+                        element.remove();
+
+                    }
+                );
+
+            participantCards.clear();
+            videoElements.clear();
+            audioElements.clear();
+
+            hostStates.clear();
+            roomOrder = [];
+
+            currentHostIdentity =
+                null;
+
+            isHost =
+                false;
+
+            selectedHostTarget =
+                null;
+
+            videoGrid.innerHTML =
+                "";
+
+            volumeList.innerHTML =
+                "";
+
+            volumePanel.style.display =
+                "none";
+
+            hostPanel.style.display =
+                "none";
+
+            hostMenu.style.display =
+                "none";
+
+            app.style.display =
+                "none";
+
+            loginScreen.style.display =
+                "flex";
+
+            connectionStatus.textContent =
+                "Підключення...";
+
+            participantsCount.textContent =
+                "0 / 12";
+
+            leaving =
+                false;
+
+        }
+
+    }
+        /* =====================================================
+       BUTTON EVENTS
+    ===================================================== */
+
+    joinButton.addEventListener(
+        "click",
+        joinRoom
+    );
+
 
     roomInput.addEventListener(
         "keydown",
         event => {
 
-            if (event.key === "Enter") {
+            if (
+                event.key ===
+                "Enter"
+            ) {
 
                 nameInput.focus();
 
@@ -1937,9 +3422,12 @@
         "keydown",
         event => {
 
-            if (event.key === "Enter") {
+            if (
+                event.key ===
+                "Enter"
+            ) {
 
-                connectToRoom();
+                joinRoom();
 
             }
 
@@ -1947,19 +3435,546 @@
     );
 
 
-    joinButton.addEventListener(
+    cameraButton.addEventListener(
         "click",
-        connectToRoom
+        toggleCamera
+    );
+
+
+    micButton.addEventListener(
+        "click",
+        toggleMicrophone
+    );
+
+
+    volumeButton.addEventListener(
+        "click",
+        toggleVolumePanel
+    );
+
+
+    leaveButton.addEventListener(
+        "click",
+        async () => {
+
+            if (
+                confirm(
+                    "Вийти з кімнати?"
+                )
+            ) {
+
+                await leaveRoom();
+
+            }
+
+        }
     );
 
 
     /* =====================================================
-       PAGE CLOSE
+       HOST PANEL
+    ===================================================== */
+
+    hostPanelButton.addEventListener(
+        "click",
+        () => {
+
+            if (!isHost) {
+                return;
+            }
+
+            const visible =
+                hostPanel.style.display ===
+                "block";
+
+            hostPanel.style.display =
+                visible
+                    ? "none"
+                    : "block";
+
+            if (!visible) {
+
+                renderHostPanel();
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       HOST MENU BUTTONS
+    ===================================================== */
+
+    document
+        .getElementById(
+            "hostKillButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "kill",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostReviveButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "revive",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostMuteButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "mute",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostUnmuteButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "unmute",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostHighlightButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "highlight",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostUnhighlightButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "unhighlight",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostHideCameraButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "hide-camera",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostShowCameraButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    sendHostAction(
+                        "show-camera",
+                        selectedHostTarget
+                    );
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    document
+        .getElementById(
+            "hostKickButton"
+        )
+        .addEventListener(
+            "click",
+            () => {
+
+                if (
+                    selectedHostTarget
+                ) {
+
+                    const card =
+                        participantCards.get(
+                            selectedHostTarget
+                        );
+
+                    const name =
+                        card?.querySelector(
+                            ".participant-name"
+                        )?.textContent ||
+                        selectedHostTarget;
+
+                    if (
+                        confirm(
+                            `Вигнати ${name} з кімнати?`
+                        )
+                    ) {
+
+                        sendHostAction(
+                            "kick",
+                            selectedHostTarget
+                        );
+
+                    }
+
+                }
+
+                closeHostMenu();
+
+            }
+        );
+
+
+    /* =====================================================
+       CLOSE PANELS WHEN CLICKING OUTSIDE
+    ===================================================== */
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            if (
+                hostMenu.style.display ===
+                    "block" &&
+                !hostMenu.contains(
+                    event.target
+                )
+            ) {
+
+                closeHostMenu();
+
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            if (
+                volumePanel.style.display ===
+                    "block" &&
+                !volumePanel.contains(
+                    event.target
+                ) &&
+                event.target !==
+                    volumeButton
+            ) {
+
+                volumePanel.style.display =
+                    "none";
+
+            }
+
+        }
+    );
+
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key ===
+                "Escape"
+            ) {
+
+                closeHostMenu();
+
+                volumePanel.style.display =
+                    "none";
+
+                hostPanel.style.display =
+                    "none";
+
+            }
+
+        }
+    );
+
+
+    /* =====================================================
+       CAMERA / MICROPHONE PERMISSIONS
+    ===================================================== */
+
+    async function checkMediaPermissions() {
+
+        try {
+
+            if (
+                !navigator.mediaDevices ||
+                !navigator.mediaDevices.getUserMedia
+            ) {
+
+                return;
+
+            }
+
+            const stream =
+                await navigator.mediaDevices
+                    .getUserMedia({
+                        video: true,
+                        audio: true
+                    });
+
+            stream
+                .getTracks()
+                .forEach(
+                    track => track.stop()
+                );
+
+        } catch (error) {
+
+            console.warn(
+                "Media permission warning:",
+                error
+            );
+
+        }
+
+    }
+
+
+    /* =====================================================
+       HOST MUTE ENFORCEMENT
+    ===================================================== */
+
+    async function enforceHostMute() {
+
+        if (!room) {
+            return;
+        }
+
+        const state =
+            getPlayerState(
+                participantName
+            );
+
+        if (
+            !state.mutedByHost
+        ) {
+            return;
+        }
+
+        const local =
+            room.localParticipant;
+
+        if (
+            local.isMicrophoneEnabled
+        ) {
+
+            try {
+
+                await local
+                    .setMicrophoneEnabled(
+                        false
+                    );
+
+            } catch (error) {
+
+                console.error(
+                    "Host mute error:",
+                    error
+                );
+
+            }
+
+        }
+
+        updateControls();
+
+    }
+
+
+    /* =====================================================
+       PERIODIC STATE CHECK
+    ===================================================== */
+
+    setInterval(
+        () => {
+
+            if (
+                room &&
+                !leaving
+            ) {
+
+                enforceHostMute();
+
+                updateControls();
+
+            }
+
+        },
+        1000
+    );
+
+
+    /* =====================================================
+       DEVICE ERROR HANDLING
+    ===================================================== */
+
+    window.addEventListener(
+        "unhandledrejection",
+        event => {
+
+            console.error(
+                "Unhandled promise rejection:",
+                event.reason
+            );
+
+        }
+    );
+
+
+    window.addEventListener(
+        "error",
+        event => {
+
+            console.error(
+                "Global error:",
+                event.error
+            );
+
+        }
+    );
+
+
+    /* =====================================================
+       BEFORE UNLOAD
     ===================================================== */
 
     window.addEventListener(
         "beforeunload",
         () => {
+
+            leaving = true;
 
             if (ws) {
 
@@ -1972,11 +3987,7 @@
             if (room) {
 
                 try {
-
-                    room.disconnect(
-                        true
-                    );
-
+                    room.disconnect();
                 } catch {}
 
             }
@@ -1984,7 +3995,37 @@
         }
     );
 
-</script>
 
-</body>
-</html>
+    /* =====================================================
+       INITIAL STATE
+    ===================================================== */
+
+    hostPanelButton.style.display =
+        "none";
+
+    hostPanel.style.display =
+        "none";
+
+    hostMenu.style.display =
+        "none";
+
+    volumePanel.style.display =
+        "none";
+
+
+    /* =====================================================
+       MEDIA PERMISSIONS
+    ===================================================== */
+
+    checkMediaPermissions();
+
+
+    /* =====================================================
+       DEBUG
+    ===================================================== */
+
+    console.log(
+        "🎭 Mafia Video Room loaded"
+    );
+
+</script>
