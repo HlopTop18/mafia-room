@@ -24,7 +24,9 @@ function getRoom(roomName) {
     if (!rooms.has(roomName)) {
         rooms.set(roomName, {
             players: new Map(),
-            host: null
+            host: null,
+            states: new Map(),
+            order: []
         });
     }
 
@@ -67,6 +69,19 @@ app.post("/api/livekit-token", async (req, res) => {
                 name: participantName,
                 joinedAt: Date.now()
             });
+
+            if (!room.states.has(participantName)) {
+                room.states.set(participantName, {
+                    alive: true,
+                    mutedByHost: false,
+                    highlighted: false,
+                    cameraKilled: false
+                });
+            }
+
+            if (!room.order.includes(participantName)) {
+                room.order.push(participantName);
+            }
         }
 
         if (!room.host) {
@@ -123,6 +138,8 @@ app.get("/api/room/:roomName", (req, res) => {
         roomName,
         host: room.host,
         players: Array.from(room.players.values()),
+        states: Object.fromEntries(room.states),
+        order: room.order,
         count: room.players.size,
         maxPlayers: MAX_PLAYERS
     });
@@ -190,6 +207,19 @@ wss.on("connection", socket => {
                         name: playerName,
                         joinedAt: Date.now()
                     });
+
+                    if (!room.states.has(playerName)) {
+                        room.states.set(playerName, {
+                            alive: true,
+                            mutedByHost: false,
+                            highlighted: false,
+                            cameraKilled: false
+                        });
+                    }
+
+                    if (!room.order.includes(playerName)) {
+                        room.order.push(playerName);
+                    }
                 }
 
                 if (!room.host) {
@@ -201,6 +231,8 @@ wss.on("connection", socket => {
                     roomName,
                     host: room.host,
                     players: Array.from(room.players.values()),
+                    states: Object.fromEntries(room.states),
+                    order: room.order,
                     maxPlayers: MAX_PLAYERS
                 }));
 
@@ -237,7 +269,7 @@ wss.on("connection", socket => {
                 );
             }
 
-            /* HOST */
+            /* HOST / GAME ACTIONS */
 
             if (message.type === "host-action") {
                 if (!socket.roomName) {
@@ -250,16 +282,109 @@ wss.on("connection", socket => {
                     return;
                 }
 
+                const action = String(message.action || "");
+                const target = String(message.target || "").trim();
+
+                if (!target || !room.players.has(target)) {
+                    return;
+                }
+
+                if (!room.states.has(target)) {
+                    room.states.set(target, {
+                        alive: true,
+                        mutedByHost: false,
+                        highlighted: false,
+                        cameraKilled: false
+                    });
+                }
+
+                const state = room.states.get(target);
+
+                if (action === "kill") {
+                    state.alive = false;
+                    state.cameraKilled = true;
+                }
+
+                else if (action === "revive") {
+                    state.alive = true;
+                    state.cameraKilled = false;
+                }
+
+                else if (action === "mute") {
+                    state.mutedByHost = true;
+                }
+
+                else if (action === "unmute") {
+                    state.mutedByHost = false;
+                }
+
+                else if (action === "highlight") {
+                    state.highlighted = true;
+                }
+
+                else if (action === "unhighlight") {
+                    state.highlighted = false;
+                }
+
+                else if (action === "hide-camera") {
+                    state.cameraKilled = true;
+                }
+
+                else if (action === "show-camera") {
+                    state.cameraKilled = false;
+                }
+
+                else if (action === "kick") {
+                    broadcast(socket.roomName, {
+                        type: "host-kick",
+                        target
+                    });
+
+                    return;
+                }
+
+                else if (action === "order") {
+                    const incoming =
+                        Array.isArray(message.order)
+                            ? message.order
+                            : [];
+
+                    const activeNames =
+                        Array.from(room.players.keys());
+
+                    const valid =
+                        incoming.filter(name =>
+                            activeNames.includes(name)
+                        );
+
+                    for (const name of activeNames) {
+                        if (!valid.includes(name)) {
+                            valid.push(name);
+                        }
+                    }
+
+                    room.order = valid;
+
+                    broadcast(socket.roomName, {
+                        type: "room-order",
+                        order: room.order
+                    });
+
+                    return;
+                }
+
                 broadcast(socket.roomName, {
-                    type: "host-action",
-                    action: message.action,
-                    target: message.target || null,
-                    from: socket.playerName
+                    type: "state-update",
+                    target,
+                    state
                 });
             }
 
         } catch (error) {
-            console.error("WebSocket message error:", error);
+            console.error(
+                "WebSocket message error:",
+                error
+            );
         }
     });
 
@@ -276,19 +401,28 @@ wss.on("connection", socket => {
         }
 
         room.players.delete(socket.playerName);
+        room.states.delete(socket.playerName);
 
-        /* Якщо вийшов ведучий — передаємо роль наступному */
+        room.order =
+            room.order.filter(
+                name => name !== socket.playerName
+            );
 
         if (room.host === socket.playerName) {
-            const nextPlayer = room.players.keys().next().value;
 
-            room.host = nextPlayer || null;
+            const nextPlayer =
+                room.players.keys().next().value;
+
+            room.host =
+                nextPlayer || null;
 
             if (nextPlayer) {
+
                 broadcast(socket.roomName, {
                     type: "host-changed",
                     host: nextPlayer
                 });
+
             }
         }
 
@@ -296,15 +430,16 @@ wss.on("connection", socket => {
             type: "player-left",
             playerName: socket.playerName,
             players: Array.from(room.players.values()),
+            states: Object.fromEntries(room.states),
+            order: room.order,
             host: room.host
         });
-
-        /* Видаляємо порожню кімнату */
 
         if (room.players.size === 0) {
             rooms.delete(socket.roomName);
         }
     });
+
 });
 
 /* =========================
@@ -313,7 +448,11 @@ wss.on("connection", socket => {
 
 app.use((req, res) => {
     res.sendFile(
-        path.join(__dirname, "public", "index.html")
+        path.join(
+            __dirname,
+            "public",
+            "index.html"
+        )
     );
 });
 
@@ -322,13 +461,19 @@ app.use((req, res) => {
 ========================= */
 
 server.listen(PORT, () => {
-    console.log(`Server started on port ${PORT}`);
 
     console.log(
-        `LiveKit URL: ${LIVEKIT_URL || "НЕ ВКАЗАНО"}`
+        `Server started on port ${PORT}`
+    );
+
+    console.log(
+        `LiveKit URL: ${
+            LIVEKIT_URL || "НЕ ВКАЗАНО"
+        }`
     );
 
     console.log(
         `Maximum players: ${MAX_PLAYERS}`
     );
+
 });
